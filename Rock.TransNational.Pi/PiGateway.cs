@@ -187,7 +187,7 @@ namespace Rock.TransNational.Pi
 
         #endregion IHostedGatewayComponent
 
-        #region Temp Methods
+        #region PiGateway Rock Wrappers
 
         #region Customers
 
@@ -227,8 +227,6 @@ namespace Rock.TransNational.Pi
             };
 
             restRequest.AddJsonBody( createCustomer );
-
-            ToggleAllowUnsafeHeaderParsing( true );
 
             var response = restClient.Execute( restRequest );
 
@@ -291,11 +289,41 @@ namespace Rock.TransNational.Pi
 
             restRequest.AddJsonBody( transaction );
 
-            //ToggleAllowUnsafeHeaderParsing( true );
-
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<CreateTransactionResponse>();
+            return ParseResponse<CreateTransactionResponse>( response );
+        }
+
+        /// <summary>
+        /// Parses the response or throws an exception if the response could not be parsed
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="response">The response.</param>
+        /// <returns></returns>
+        /// <exception cref="Exception">
+        /// Unable to parse response: {response.Content}
+        /// </exception>
+        private static T ParseResponse<T>( IRestResponse response )
+        {
+            var result = JsonConvert.DeserializeObject<T>( response.Content );
+
+            if ( result == null )
+            {
+                if ( response.ErrorException != null )
+                {
+                    throw response.ErrorException;
+                }
+                else if ( response.ErrorMessage.IsNotNullOrWhiteSpace() )
+                {
+                    throw new Exception( response.ErrorMessage );
+                }
+                else
+                {
+                    throw new Exception( $"Unable to parse response: {response.Content} " );
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -313,7 +341,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<TransactionStatusResponse>();
+            return ParseResponse<TransactionStatusResponse>( response );
         }
 
         /// <summary>
@@ -331,7 +359,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<TransactionVoidRefundResponse>();
+            return ParseResponse<TransactionVoidRefundResponse>( response );
         }
 
         /// <summary>
@@ -351,7 +379,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<TransactionVoidRefundResponse>();
+            return ParseResponse<TransactionVoidRefundResponse>( response );
         }
 
         #endregion Transactions
@@ -416,7 +444,7 @@ namespace Rock.TransNational.Pi
             restRequest.AddJsonBody( planParameters );
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<CreatePlanResponse>();
+            return ParseResponse<CreatePlanResponse>( response );
         }
 
         /// <summary>
@@ -449,7 +477,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<GetPlansResult>();
+            return ParseResponse<GetPlansResult>( response );
         }
 
         #endregion Plans
@@ -472,7 +500,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<TransactionSearchResult>();
+            return ParseResponse<TransactionSearchResult>( response );
         }
 
         #endregion
@@ -495,7 +523,7 @@ namespace Rock.TransNational.Pi
             restRequest.AddJsonBody( subscriptionParameters );
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<SubscriptionResponse>();
+            return ParseResponse<SubscriptionResponse>( response );
         }
 
         /// <summary>
@@ -515,7 +543,7 @@ namespace Rock.TransNational.Pi
             restRequest.AddJsonBody( subscriptionParameters );
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<SubscriptionResponse>();
+            return ParseResponse<SubscriptionResponse>( response );
         }
 
         /// <summary>
@@ -534,7 +562,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<SubscriptionResponse>();
+            return ParseResponse<SubscriptionResponse>( response );
         }
 
         /// <summary>
@@ -551,46 +579,12 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return response.Content.FromJsonOrNull<SubscriptionResponse>();
+            return ParseResponse<SubscriptionResponse>( response );
         }
 
         #endregion Subscriptions
 
-        #region utility
-
-        // Derived from http://o2platform.wordpress.com/2010/10/20/dealing-with-the-server-committed-a-protocol-violation-sectionresponsestatusline/
-        public static bool ToggleAllowUnsafeHeaderParsing( bool enable )
-        {
-            //Get the assembly that contains the internal class
-            Assembly aNetAssembly = Assembly.GetAssembly( typeof( System.Net.Configuration.SettingsSection ) );
-            if ( aNetAssembly != null )
-            {
-                //Use the assembly in order to get the internal type for the internal class
-                Type aSettingsType = aNetAssembly.GetType( "System.Net.Configuration.SettingsSectionInternal" );
-                if ( aSettingsType != null )
-                {
-                    //Use the internal static property to get an instance of the internal settings class.
-                    //If the static instance isn't created already the property will create it for us.
-                    object anInstance = aSettingsType.InvokeMember( "Section",
-                      BindingFlags.Static | BindingFlags.GetProperty | BindingFlags.NonPublic, null, null, new object[] { } );
-                    if ( anInstance != null )
-                    {
-                        //Locate the private bool field that tells the framework is unsafe header parsing should be allowed or not
-                        FieldInfo aUseUnsafeHeaderParsing = aSettingsType.GetField( "useUnsafeHeaderParsing", BindingFlags.NonPublic | BindingFlags.Instance );
-                        if ( aUseUnsafeHeaderParsing != null )
-                        {
-                            aUseUnsafeHeaderParsing.SetValue( anInstance, true );
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        #endregion utility
-
-        #endregion Temp Methods
+        #endregion PiGateway Rock wrappers
 
         #region Exceptions
 
@@ -646,8 +640,6 @@ namespace Rock.TransNational.Pi
             {
                 throw new ReferencePaymentInfoRequired();
             }
-
-
 
             var response = this.PostTransaction( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), TransactionType.sale, referencedPaymentInfo );
             if ( !response.IsSuccessStatus() )
@@ -726,24 +718,10 @@ namespace Rock.TransNational.Pi
 
             var customerId = referencedPaymentInfo.ReferenceNumber;
 
-            // TODO: Create a new Plan for each subscription, or reuse existing ones??
-            CreatePlanParameters createPlanParameters = new CreatePlanParameters
-            {
-                Name = schedule.TransactionFrequencyValue.Value,
-                Description = $"Plan for PersonId: {schedule.PersonId }",
-                Amount = paymentInfo.Amount
-            };
-
-            SetBillingPlanParameters( createPlanParameters, schedule.TransactionFrequencyValue.Guid );
-
-            var planResponse = this.CreatePlan( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), createPlanParameters );
-
-            var planId = planResponse.Data.Id;
-
             SubscriptionRequestParameters subscriptionParameters = new SubscriptionRequestParameters
             {
                 Customer = new SubscriptionCustomer { Id = customerId },
-                PlanId = planId,
+                PlanId = null,
                 Description = $"Subscription for PersonId: {schedule.PersonId }",
                 NextBillDate = schedule.StartDate,
                 Duration = 0,
@@ -908,7 +886,6 @@ namespace Rock.TransNational.Pi
                     TransactionDateTime = transaction.CreatedDateTime.Value,
 
                     GatewayScheduleId = transaction.PaymentMethod
-
                 };
 
                 paymentList.Add( payment );
@@ -940,7 +917,6 @@ namespace Rock.TransNational.Pi
             errorMessage = string.Empty;
             return scheduledTransaction.GatewayScheduleId?.ToString();
         }
-
 
         #endregion GatewayComponent implementation
     }

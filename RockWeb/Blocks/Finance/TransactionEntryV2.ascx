@@ -133,7 +133,7 @@
                     <%-- Collect Payment Info (step 2) --%>
                     <asp:Panel ID="pnlPaymentInfo" runat="server" Visible="false">
                         <Rock:PanelWidget ID="pwTestCards" runat="server" Title="Test Cards">
-                            <table class="grid-table table table-bordered table-striped table-hover">
+                            <table class="grid-table table table-bordered table-striped table-hover" style="font-family:Consolas">
                                 <thead>
                                     <tr>
                                         <th>Card Number</th>
@@ -223,7 +223,7 @@
                     <asp:Panel ID="pnlPersonalInformation" runat="server" Visible="false">
                         <Rock:RockTextBox ID="tbFirstName" runat="server" Placeholder="First Name" />
                         <Rock:RockTextBox ID="tbLastName" runat="server" Placeholder="Last Name" />
-                        <Rock:AddressControl ID="acAddress" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="Address" />
+                        <Rock:AddressControl ID="acAddress" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
                         <Rock:PhoneNumberBox ID="pnbPhone" runat="server" Placeholder="Phone" />
                         <Rock:EmailBox ID="tbEmail" runat="server" Placeholder="Email" />
 

@@ -251,7 +251,7 @@ namespace Rock.TransNational.Pi
     /// <summary>
     /// 
     /// </summary>
-    public class PaymentMethodCardResponse
+    public abstract class PaymentMethodBaseResponse
     {
         /// <summary>
         /// Gets or sets the identifier.
@@ -262,6 +262,94 @@ namespace Rock.TransNational.Pi
         [JsonProperty( "id" )]
         public string Id { get; set; }
 
+        /// <summary>
+        /// Gets or sets the authentication code.
+        /// </summary>
+        /// <value>
+        /// The authentication code.
+        /// </value>
+        [JsonProperty( "auth_code" )]
+        public string AuthCode { get; set; }
+
+        // <summary>
+        /// Gets or sets the processor response code.
+        /// </summary>
+        /// <value>
+        /// The processor response code.
+        /// </value>
+        [JsonProperty( "processor_response_code" )]
+        public string ProcessorResponseCode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the processor response text.
+        /// </summary>
+        /// <value>
+        /// The processor response text.
+        /// </value>
+        [JsonProperty( "processor_response_text" )]
+        public string ProcessorResponseText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the type of the processor.
+        /// </summary>
+        /// <value>
+        /// The type of the processor.
+        /// </value>
+        [JsonProperty( "processor_type" )]
+        public string ProcessorType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the processor identifier.
+        /// </summary>
+        /// <value>
+        /// The processor identifier.
+        /// </value>
+        [JsonProperty( "processor_id" )]
+        public string ProcessorId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the processor specific.
+        /// </summary>
+        /// <value>
+        /// The processor specific.
+        /// </value>
+        [JsonProperty( "processor_specific" )]
+        public Processor_Specific ProcessorSpecific { get; set; }
+
+        /// <summary>
+        /// Gets or sets the created date time.
+        /// </summary>
+        /// <value>
+        /// The created date time.
+        /// </value>
+        [JsonProperty( "created_at" )]
+        public DateTime? CreatedDateTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the updated date time.
+        /// </summary>
+        /// <value>
+        /// The updated date time.
+        /// </value>
+        [JsonProperty( "updated_at" )]
+        public DateTime? UpdatedDateTime { get; set; }
+
+        /// <summary>
+        /// Newtonsoft.Json.JsonExtensionData instructs the Newtonsoft.Json.JsonSerializer to deserialize properties with no
+        /// matching class member into the specified collection
+        /// </summary>
+        /// <value>
+        /// The other data.
+        /// </value>
+        [Newtonsoft.Json.JsonExtensionData( ReadData = true, WriteData = false )]
+        public IDictionary<string, Newtonsoft.Json.Linq.JToken> _additionalData { get; set; }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class PaymentMethodCardResponse : PaymentMethodBaseResponse
+    {
         /// <summary>
         /// Gets or sets the type of the card.
         /// </summary>
@@ -317,51 +405,6 @@ namespace Rock.TransNational.Pi
         public string Status { get; set; }
 
         /// <summary>
-        /// Gets or sets the authentication code.
-        /// </summary>
-        /// <value>
-        /// The authentication code.
-        /// </value>
-        [JsonProperty( "auth_code" )]
-        public string AuthCode { get; set; }
-
-        /// <summary>
-        /// Gets or sets the processor response code.
-        /// </summary>
-        /// <value>
-        /// The processor response code.
-        /// </value>
-        [JsonProperty( "processor_response_code" )]
-        public string ProcessorResponseCode { get; set; }
-
-        /// <summary>
-        /// Gets or sets the processor response text.
-        /// </summary>
-        /// <value>
-        /// The processor response text.
-        /// </value>
-        [JsonProperty( "processor_response_text" )]
-        public string ProcessorResponseText { get; set; }
-
-        /// <summary>
-        /// Gets or sets the type of the processor.
-        /// </summary>
-        /// <value>
-        /// The type of the processor.
-        /// </value>
-        [JsonProperty( "processor_type" )]
-        public string ProcessorType { get; set; }
-
-        /// <summary>
-        /// Gets or sets the processor identifier.
-        /// </summary>
-        /// <value>
-        /// The processor identifier.
-        /// </value>
-        [JsonProperty( "processor_id" )]
-        public string ProcessorId { get; set; }
-
-        /// <summary>
         /// Gets or sets the avs response code.
         /// </summary>
         /// <value>
@@ -378,87 +421,68 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "cvv_response_code" )]
         public string CVVResponseCode { get; set; }
-
-        /// <summary>
-        /// Gets or sets the processor specific.
-        /// </summary>
-        /// <value>
-        /// The processor specific.
-        /// </value>
-        [JsonProperty( "processor_specific" )]
-        public Processor_Specific ProcessorSpecific { get; set; }
-
-        /// <summary>
-        /// Gets or sets the created date time.
-        /// </summary>
-        /// <value>
-        /// The created date time.
-        /// </value>
-        [JsonProperty( "created_at" )]
-        public DateTime? CreatedDateTime { get; set; }
-
-        /// <summary>
-        /// Gets or sets the updated date time.
-        /// </summary>
-        /// <value>
-        /// The updated date time.
-        /// </value>
-        [JsonProperty( "updated_at" )]
-        public DateTime? UpdatedDateTime { get; set; }
-
-        /// <summary>
-        /// Newtonsoft.Json.JsonExtensionData instructs the Newtonsoft.Json.JsonSerializer to deserialize properties with no
-        /// matching class member into the specified collection
-        /// </summary>
-        /// <value>
-        /// The other data.
-        /// </value>
-        [Newtonsoft.Json.JsonExtensionData( ReadData = true, WriteData = false )]
-        public IDictionary<string, Newtonsoft.Json.Linq.JToken> _additionalData { get; set; }
+        
     }
-
-    /////
-
 
     /// <summary>
     /// 
     /// </summary>
-    public class PaymentMethodACHResponse
+    public class PaymentMethodACHResponse : PaymentMethodBaseResponse
     {
-        public string id { get; set; }
+        /// <summary>
+        /// Gets or sets the sec code.
+        /// </summary>
+        /// <value>
+        /// The sec code.
+        /// </value>
+        [JsonProperty( "sec_code" )]
+        public string SecCode { get; set; }
 
-        public string sec_code { get; set; }
+        /// <summary>
+        /// Gets or sets the type of the account.
+        /// </summary>
+        /// <value>
+        /// The type of the account.
+        /// </value>
+        [JsonProperty( "account_type" )]
+        public string AccountType { get; set; }
 
-        public string account_type { get; set; }
+        /// <summary>
+        /// Gets or sets the masked account number.
+        /// </summary>
+        /// <value>
+        /// The masked account number.
+        /// </value>
+        [JsonProperty( "masked_account_number" )]
+        public string MaskedAccountNumber { get; set; }
 
-        public string masked_account_number { get; set; }
+        /// <summary>
+        /// Gets or sets the routing number.
+        /// </summary>
+        /// <value>
+        /// The routing number.
+        /// </value>
+        [JsonProperty( "routing_number" )]
+        public string RoutingNumber { get; set; }
 
-        public string routing_number { get; set; }
+        /// <summary>
+        /// Gets or sets the response.
+        /// </summary>
+        /// <value>
+        /// The response.
+        /// </value>
+        [JsonProperty( "response" )]
+        public string Response { get; set; }
 
-        public string auth_code { get; set; }
-
-        public string response { get; set; }
-
-        public int response_code { get; set; }
-
-        public string processor_response_code { get; set; }
-
-        public string processor_response_text { get; set; }
-
-        public string processor_type { get; set; }
-
-        public string processor_id { get; set; }
-
-        public string processor_specific { get; set; }
-
-        public string created_at { get; set; }
-
-        public string updated_at { get; set; }
+        /// <summary>
+        /// Gets or sets the response code.
+        /// </summary>
+        /// <value>
+        /// The response code.
+        /// </value>
+        [JsonProperty( "response_code" )]
+        public int ResponseCode { get; set; }
     }
-
-
-    ////
-
 
     #endregion Customer Related
 
@@ -1171,6 +1195,15 @@ namespace Rock.TransNational.Pi
     /// </summary>
     public class Processor_Specific
     {
+        /// <summary>
+        /// Newtonsoft.Json.JsonExtensionData instructs the Newtonsoft.Json.JsonSerializer to deserialize properties with no
+        /// matching class member into the specified collection
+        /// </summary>
+        /// <value>
+        /// The other data.
+        /// </value>
+        [Newtonsoft.Json.JsonExtensionData( ReadData = true, WriteData = false )]
+        public IDictionary<string, Newtonsoft.Json.Linq.JToken> _additionalData { get; set; }
     }
 
     /// <summary>
