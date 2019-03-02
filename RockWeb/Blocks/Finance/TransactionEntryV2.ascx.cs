@@ -73,8 +73,6 @@ namespace RockWeb.Blocks.Finance
         Category = AttributeCategory.None,
         Order = 3 )]
 
-
-
     [AccountsField(
         "Accounts",
         Key = AttributeKey.AccountsToDisplay,
@@ -1163,6 +1161,47 @@ mission. We are so grateful for your commitment.</p>
             }
 
             SetAccountPickerCampus( targetPerson );
+
+            pnlLoggedInNameDisplay.Visible = targetPerson != null;
+            if ( targetPerson != null )
+            {
+                lCurrentPersonFullName.Text = targetPerson.FullName;
+                tbFirstName.Text = targetPerson.FirstName;
+                tbLastName.Text = targetPerson.LastName;
+                tbEmail.Text = targetPerson.Email;
+                var rockContext = new RockContext();
+                var addressTypeGuid = GetAttributeValue( AttributeKey.PersonAddressType ).AsGuid();
+                var addressTypeId = DefinedValueCache.GetId( addressTypeGuid );
+
+                GroupLocation personGroupLocation = null;
+                if ( addressTypeId.HasValue )
+                {
+                    personGroupLocation = new PersonService( rockContext ).GetFirstLocation( targetPerson.Id, addressTypeId.Value );
+                }
+
+                if ( personGroupLocation != null )
+                {
+                    acAddress.SetValues( personGroupLocation.Location );
+                }
+                else
+                {
+                    acAddress.SetValues( null );
+                }
+
+                if ( GetAttributeValue( AttributeKey.PromptForPhone ).AsBoolean() )
+                {
+                    var personPhoneNumber = targetPerson.GetPhoneNumber( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME.AsGuid() );
+
+                    // If person did not have a home phone number, read the cell phone number (which would then
+                    // get saved as a home number also if they don't change it, which is OK ).
+                    if ( personPhoneNumber == null || string.IsNullOrWhiteSpace( personPhoneNumber.Number ) || personPhoneNumber.IsUnlisted )
+                    {
+                        personPhoneNumber = targetPerson.GetPhoneNumber( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_MOBILE.AsGuid() );
+                    }
+                }
+            }
+
+            pnlAnonymousNameEntry.Visible = targetPerson == null;
         }
 
         /// <summary>
@@ -1265,6 +1304,7 @@ mission. We are so grateful for your commitment.</p>
                         phone.NumberTypeValueId = numberTypeId;
                     }
 
+                    // TODO, verify if an unlisted home phone could get overwritten by their cell phone number if the home phone is unlisted
                     phone.CountryCode = PhoneNumber.CleanNumber( pnbPhone.CountryCode );
                     phone.Number = PhoneNumber.CleanNumber( pnbPhone.Number );
                 }

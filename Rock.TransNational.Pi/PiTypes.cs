@@ -387,7 +387,7 @@ namespace Rock.TransNational.Pi
         public string MaskedCard { get; set; }
 
         /// <summary>
-        /// Gets or sets the expiration date.
+        /// Gets or sets the expiration date in mm/yy format
         /// </summary>
         /// <value>
         /// The expiration date.
@@ -1104,15 +1104,18 @@ namespace Rock.TransNational.Pi
         [JsonProperty( "payment_method" )]
         public string PaymentMethod { get; set; }
 
-        /// NOTE: this is documented as just 'response', but it is actually response_body (when using a token at least)
+        /// 
         /// <summary>
         /// Gets or sets the response body.
         /// </summary>
         /// <value>
         /// The response body.
         /// </value>
+        /// <remarks>
+        /// NOTE: the json property is documented as just 'response', but it is actually 'response_body'
+        /// </remarks>
         [JsonProperty( "response_body" )]
-        public PaymentMethodResponse ResponseBody { get; set; }
+        public PaymentMethodResponse PaymentMethodResponse { get; set; }
 
         /// <summary>
         /// Gets or sets the status.

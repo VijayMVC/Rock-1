@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Linq;
-using System.Reflection;
 using System.Web.UI;
 using Newtonsoft.Json;
 using RestSharp;
 using Rock.Attribute;
 using Rock.Financial;
 using Rock.Model;
+using Rock.Security;
 using Rock.TransNational.Pi.Controls;
 using Rock.Web.Cache;
 
@@ -72,6 +72,7 @@ namespace Rock.TransNational.Pi
         /// <value>
         /// The gateway URL.
         /// </value>
+        [System.Diagnostics.DebuggerStepThrough]
         public string GetGatewayUrl( FinancialGateway financialGateway )
         {
             return this.GetAttributeValue( financialGateway, AttributeKey.GatewayUrl );
@@ -83,6 +84,7 @@ namespace Rock.TransNational.Pi
         /// <value>
         /// The public API key.
         /// </value>
+        [System.Diagnostics.DebuggerStepThrough]
         public string GetPublicApiKey( FinancialGateway financialGateway )
         {
             return this.GetAttributeValue( financialGateway, AttributeKey.PublicApiKey );
@@ -94,6 +96,7 @@ namespace Rock.TransNational.Pi
         /// <value>
         /// The private API key.
         /// </value>
+        [System.Diagnostics.DebuggerStepThrough]
         private string GetPrivateApiKey( FinancialGateway financialGateway )
         {
             return this.GetAttributeValue( financialGateway, AttributeKey.PrivateApiKey );
@@ -650,6 +653,61 @@ namespace Rock.TransNational.Pi
 
             var financialTransaction = new FinancialTransaction();
             financialTransaction.TransactionCode = response.Data.Id;
+            var creditCardResponse = response.Data.PaymentMethodResponse?.Card;
+            var achResponse = response.Data.PaymentMethodResponse?.ACH;
+            financialTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
+            var billingAddressResponse = response.Data.BillingAddress;
+            if ( billingAddressResponse != null )
+            {
+                // since we are using a token for payment, it is possible that the Gateway has a different address associated with the payment method
+                financialTransaction.FinancialPaymentDetail.NameOnCardEncrypted = Encryption.EncryptString( $"{billingAddressResponse.FirstName} {billingAddressResponse.LastName}" );
+
+                // if address wasn't collected when entering the transaction, set the address to the billing info returned from the gateway (if any)
+                if ( paymentInfo.Street1.IsNullOrWhiteSpace() )
+                {
+                    if ( billingAddressResponse.AddressLine1.IsNotNullOrWhiteSpace() )
+                    {
+                        paymentInfo.Street1 = billingAddressResponse.AddressLine1;
+                        paymentInfo.Street2 = billingAddressResponse.AddressLine2;
+                        paymentInfo.City = billingAddressResponse.City;
+                        paymentInfo.State = billingAddressResponse.State;
+                        paymentInfo.PostalCode = billingAddressResponse.PostalCode;
+                        paymentInfo.Country = billingAddressResponse.Country;
+                    }
+                }
+            }
+
+            if ( creditCardResponse != null )
+            {
+                financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD.AsGuid() );
+                
+                // financialTransaction.FinancialPaymentDetail.CreditCardTypeValueId;
+
+                financialTransaction.FinancialPaymentDetail.AccountNumberMasked = creditCardResponse.MaskedCard;
+
+                if ( creditCardResponse.ExpirationDate?.Length == 5 )
+                {
+                    financialTransaction.FinancialPaymentDetail.ExpirationMonthEncrypted = Encryption.EncryptString( creditCardResponse.ExpirationDate.Substring( 0, 2 ) );
+                    financialTransaction.FinancialPaymentDetail.ExpirationYearEncrypted = Encryption.EncryptString( creditCardResponse.ExpirationDate.Substring( 3, 2 ) );
+                }
+
+                //// The gateway tells us what the CreditCardType is since it was selected using their hosted payment entry frame.
+                //// So, first see if we can determine CreditCardTypeValueId using the CardType response from the gateway
+                var creditCardTypeValue = DefinedTypeCache.Get( new Guid( Rock.SystemGuid.DefinedType.FINANCIAL_CREDIT_CARD_TYPE ) )?.GetDefinedValueFromValue( creditCardResponse.CardType );
+                if ( creditCardTypeValue == null )
+                {
+                    // otherwise, see if we can figure it out from the MaskedCard using RegEx
+                    creditCardTypeValue = CreditCardPaymentInfo.GetCreditCardType( creditCardResponse.MaskedCard );
+                }
+
+                financialTransaction.FinancialPaymentDetail.CreditCardTypeValueId = creditCardTypeValue?.Id;
+            }
+            else if ( achResponse != null )
+            {
+                financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH.AsGuid() );
+                financialTransaction.FinancialPaymentDetail.AccountNumberMasked = achResponse.MaskedAccountNumber;
+            }
+
             return financialTransaction;
         }
 

@@ -221,8 +221,16 @@
 
                     <%-- Collect/Update Personal Information (step 3) --%>
                     <asp:Panel ID="pnlPersonalInformation" runat="server" Visible="false">
-                        <Rock:RockTextBox ID="tbFirstName" runat="server" Placeholder="First Name" />
-                        <Rock:RockTextBox ID="tbLastName" runat="server" Placeholder="Last Name" />
+
+                        <asp:Panel ID="pnlLoggedInNameDisplay" runat="server">
+                            <asp:Literal ID="lCurrentPersonFullName" runat="server" />
+                        </asp:Panel>
+                        <asp:Panel ID="pnlAnonymousNameEntry" runat="server">
+                            <Rock:RockTextBox ID="tbFirstName" runat="server" Placeholder="First Name" />
+                            <Rock:RockTextBox ID="tbLastName" runat="server" Placeholder="Last Name" />
+                        </asp:Panel>
+
+
                         <Rock:AddressControl ID="acAddress" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
                         <Rock:PhoneNumberBox ID="pnbPhone" runat="server" Placeholder="Phone" />
                         <Rock:EmailBox ID="tbEmail" runat="server" Placeholder="Email" />
