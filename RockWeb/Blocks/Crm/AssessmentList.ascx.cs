@@ -57,6 +57,17 @@ namespace Rockweb.Blocks.Crm
 </div>
 {{Person.NickName}}
 {{LastRequestObject.AssessmentTypeID}}
+{% for assessment in Assessmentype %}
+        {{assessment.LastRequestObject.AssessmentTypeID}}
+        {{assessment.LastRequestObject}}
+{%endfor%}
+
+Other Loop
+{% for assessment in LastRequestObject %}
+        {{assessment.AssessmentTypeID}}
+        {{assessment.LastRequestObject}}
+{%endfor%}
+
 </div>" )]
     public partial class AssessmentList : Rock.Web.UI.RockBlock
     {
@@ -77,14 +88,10 @@ namespace Rockweb.Blocks.Crm
             Boolean hideIfNoActiveRequests = GetAttributeValue( "HideIfNoActiveRequests" ).AsBoolean();
 
             //hide if no requests
-            Boolean hideIfRequests = GetAttributeValue( "HideIfNoRequests" ).AsBoolean();
+            Boolean hideIfNoRequests = GetAttributeValue( "HideIfNoRequests" ).AsBoolean();
 
             base.OnInit( e );
-            RockContext assessmentsTypes = new RockContext();
-            var getalltypes = assessmentsTypes.AssessmentTypes.AsNoTracking().ToList();
-
-            RockContext assessments = new RockContext();
-            var getallAssesments = assessments.Assessments.AsNoTracking().ToList();
+       
         }
 
         /// <summary>
@@ -114,16 +121,15 @@ namespace Rockweb.Blocks.Crm
                 Title = a.Title,
                 LastRequestObject = a.Assessments.ToList()
             } ).ToDictionary( a => a.Title, a => a.LastRequestObject );
-                        
 
             // Resolve the text field merge fields
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, CurrentPerson );
             if ( getalltypes != null )
             {
-                mergeFields.Add( "AssessmentType", getalltypes.First() );
+                mergeFields.Add( "AssessmentType", getalltypes);
                 mergeFields.Add( "Person", CurrentPerson );
             }
-            lAssessments.Text = GetAttributeValue( LAVAATTRIBUTEKEY ).ResolveMergeFields( mergeFields );
+            lAssessments.Text = GetAttributeValue( LAVAATTRIBUTEKEY ).ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
         }
         #endregion
     }
