@@ -7,13 +7,13 @@ namespace Rock.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.1.3-40302")]
-    public sealed partial class AddAssessments : IMigrationMetadata
+    public sealed partial class AddAssessment : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(AddAssessments));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(AddAssessment));
         
         string IMigrationMetadata.Id
         {
-            get { return "201903012339370_AddAssessments"; }
+            get { return "201903021622124_AddAssessment"; }
         }
         
         string IMigrationMetadata.Source

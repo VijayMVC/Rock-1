@@ -129,6 +129,16 @@ namespace Rock.Model
         [DataMember]
         public int ValidDuration { get; set; }
 
+        /// <summary>
+        ///Collection of Assessments for each Assessment Type
+        /// </summary>
+        [DataMember]
+        public virtual ICollection<Assessment> Assessments
+        {
+            get { return _assessments; }
+            set { _assessments = value; }
+        }
+        private ICollection<Assessment> _assessments;
         #endregion
     }
 }

@@ -22,7 +22,7 @@ namespace Rock.Migrations
     /// <summary>
     ///
     /// </summary>
-    public partial class AddAssessments : Rock.Migrations.RockMigration
+    public partial class AddAssessment : Rock.Migrations.RockMigration
     {
         /// <summary>
         /// Operations to be performed during the upgrade process.
@@ -55,6 +55,8 @@ namespace Rock.Migrations
                 .PrimaryKey(t => t.Id)
                 .ForeignKey("dbo.PersonAlias", t => t.CreatedByPersonAliasId)
                 .ForeignKey("dbo.PersonAlias", t => t.ModifiedByPersonAliasId)
+                .ForeignKey("dbo.AssessmentType", t => t.AssessmentTypeID, cascadeDelete: true)
+                .Index(t => t.AssessmentTypeID)
                 .Index(t => t.CreatedByPersonAliasId)
                 .Index(t => t.ModifiedByPersonAliasId)
                 .Index(t => t.Guid, unique: true);
@@ -97,6 +99,7 @@ namespace Rock.Migrations
         {
             DropForeignKey("dbo.AssessmentType", "ModifiedByPersonAliasId", "dbo.PersonAlias");
             DropForeignKey("dbo.AssessmentType", "CreatedByPersonAliasId", "dbo.PersonAlias");
+            DropForeignKey("dbo.Assessment", "AssessmentTypeID", "dbo.AssessmentType");
             DropForeignKey("dbo.Assessment", "ModifiedByPersonAliasId", "dbo.PersonAlias");
             DropForeignKey("dbo.Assessment", "CreatedByPersonAliasId", "dbo.PersonAlias");
             DropIndex("dbo.AssessmentType", new[] { "Guid" });
@@ -105,6 +108,7 @@ namespace Rock.Migrations
             DropIndex("dbo.Assessment", new[] { "Guid" });
             DropIndex("dbo.Assessment", new[] { "ModifiedByPersonAliasId" });
             DropIndex("dbo.Assessment", new[] { "CreatedByPersonAliasId" });
+            DropIndex("dbo.Assessment", new[] { "AssessmentTypeID" });
             DropTable("dbo.AssessmentType");
             DropTable("dbo.Assessment");
         }

@@ -221,10 +221,10 @@ namespace Rock.Data
         public DbSet<Assessment> Assessments { get; set; }
 
         /// <summary>
-        /// Gets or sets the assessments.
+        /// Gets or sets the AssessmentTypes.
         /// </summary>
         /// <value>
-        /// The assessments
+        /// The AssessmentTypes
         /// </value>
         public DbSet<AssessmentType> AssessmentTypes { get; set; }
 
