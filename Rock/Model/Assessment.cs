@@ -15,25 +15,11 @@
 // </copyright>
 //
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration;
-using System.Data.Entity.SqlServer;
-using System.IO;
-using System.Linq;
-using System.Net;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Web;
-
 using Rock.Data;
-using Rock.UniversalSearch;
-using Rock.UniversalSearch.IndexModels;
-using Rock.Web.Cache;
 
 namespace Rock.Model
 {
@@ -43,9 +29,10 @@ namespace Rock.Model
     [RockDomain( "CRM" )]
     [Table( "Assessment" )]
     [DataContract]
-    public class Assessment : Model<Assessment>, IRockEntity
+    public partial class Assessment : Model<Assessment>
     {
         #region Entity Properties
+
         /// <summary>
         ///PersonAliasID
         /// /// </summary>
@@ -54,7 +41,7 @@ namespace Rock.Model
         /// </value>
         [Required]
         [DataMember]
-        public int PersonAliasID { get; set; }
+        public int PersonAliasId { get; set; }
 
         /// <summary>
         ///AssessmentTypeID
@@ -64,7 +51,7 @@ namespace Rock.Model
         /// </value>
         [Required]
         [DataMember]
-        public int AssessmentTypeID { get; set; }
+        public int AssessmentTypeId { get; set; }
 
         /// <summary>
         ///RequestorPersonAliasID
@@ -73,8 +60,7 @@ namespace Rock.Model
         /// A <see cref="System.int"/> <c>false</c>.
         /// </value>
         [DataMember]
-        public int? RequestorPersonAliasID { get; set; }
-
+        public int? RequesterPersonAliasId { get; set; }
 
         /// <summary>
         ///RequestedDateTime
@@ -85,7 +71,6 @@ namespace Rock.Model
         [DataMember]
         public DateTime? RequestedDateTime { get; set; }
 
-
         /// <summary>
         ///RequestedDueDate
         /// /// </summary>
@@ -95,7 +80,6 @@ namespace Rock.Model
         [DataMember]
         public DateTime? RequestedDueDate { get; set; }
 
-
         /// <summary>
         ///Status
         /// /// </summary>
@@ -104,7 +88,7 @@ namespace Rock.Model
         /// </value>
         [Required]
         [DataMember]
-        public Status Status { get; set; }
+        public AssessmentRequestStatus Status { get; set; }
 
         /// <summary>
         ///CompletedDateTime 
@@ -136,12 +120,68 @@ namespace Rock.Model
         public DateTime? LastReminderDate { get; set; }
 
         #endregion
+
+        #region Virtual Properties
+        
+        /// <summary>
+        /// Gets or sets the <see cref="Rock.Model.AssessmentType"/> that represents the type of the assessment.
+        /// </summary>
+        /// <value>
+        /// A <see cref="Rock.Model.AssessmentType"/> that represents the type of the assessment.
+        /// </value>
+        [DataMember]
+        public virtual AssessmentType AssessmentType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the person alias.
+        /// </summary>
+        /// <value>
+        /// The person alias.
+        /// </value>
+        [DataMember]
+        public virtual PersonAlias PersonAlias { get; set; }
+
+        /// <summary>
+        /// Gets or sets the requester person alias.
+        /// </summary>
+        /// <value>
+        /// The person alias.
+        /// </value>
+        [LavaInclude]
+        public virtual PersonAlias RequesterPersonAlias { get; set; }
+
+        #endregion
+
+        #region Public Methods
+
+        #endregion
     }
-    #region Enums
+
+    #region Entity Configuration
+
+    /// <summary>
+    /// Assessment Configuration class.
+    /// </summary>
+    public partial class AssessmentConfiguration : EntityTypeConfiguration<Assessment>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AssessmentConfiguration" /> class.
+        /// </summary>
+        public AssessmentConfiguration()
+        {
+            this.HasRequired( a => a.AssessmentType ).WithMany().HasForeignKey( a => a.AssessmentTypeId ).WillCascadeOnDelete( true );
+            this.HasRequired( a => a.PersonAlias ).WithMany().HasForeignKey( a => a.PersonAliasId ).WillCascadeOnDelete( false );
+            this.HasOptional( a => a.RequesterPersonAlias ).WithMany().HasForeignKey( a => a.RequesterPersonAliasId ).WillCascadeOnDelete( false );
+        }
+    }
+
+    #endregion
+
+    #region Enumerations
     /// <summary>
     ///Enums for Assessment Status
     /// </summary>
-    public enum Status
+    public enum AssessmentRequestStatus
     {
         /// <summary>
         /// Pending Status

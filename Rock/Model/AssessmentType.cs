@@ -16,24 +16,12 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration;
-using System.Data.Entity.SqlServer;
-using System.IO;
-using System.Linq;
-using System.Net;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Web;
 
 using Rock.Data;
-using Rock.UniversalSearch;
-using Rock.UniversalSearch.IndexModels;
-using Rock.Web.Cache;
 
 namespace Rock.Model
 {
@@ -43,7 +31,7 @@ namespace Rock.Model
     [RockDomain( "CRM" )]
     [Table( "AssessmentType" )]
     [DataContract]
-    public class AssessmentType : Model<AssessmentType>, IRockEntity
+    public class AssessmentType : Model<AssessmentType>, IHasActiveFlag
     {
         #region Entity Properties
 
@@ -129,6 +117,21 @@ namespace Rock.Model
         [DataMember]
         public int ValidDuration { get; set; }
 
+
+        /// <summary>
+        /// Gets or sets a flag indicating if this AssessmentType is a part of the Rock core system/framework. This property is required.
+        /// </summary>
+        /// <value>
+        /// A <see cref="System.Boolean"/> value that is <c>true</c> if this AssessmentType is part of the Rock core system/framework; otherwise <c>false</c>.
+        /// </value>
+        [Required]
+        [DataMember( IsRequired = true )]
+        public bool IsSystem { get; set; }
+
+        #endregion
+
+        #region Virtual Properties
+
         /// <summary>
         ///Collection of Assessments for each Assessment Type
         /// </summary>
@@ -139,6 +142,24 @@ namespace Rock.Model
             set { _assessments = value; }
         }
         private ICollection<Assessment> _assessments;
+
         #endregion
     }
+
+    #region Entity Configuration
+
+    /// <summary>
+    /// AssessmentType Configuration class.
+    /// </summary>
+    public partial class AssessmentTypeConfiguration : EntityTypeConfiguration<AssessmentType>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AssessmentTypeConfiguration" /> class.
+        /// </summary>
+        public AssessmentTypeConfiguration()
+        {
+        }
+    }
+
+    #endregion
 }
