@@ -2,4 +2,5 @@
 
 <asp:Panel ID="pnlAssessments" runat="server">
     <asp:Literal ID="lAssessments" runat="server"></asp:Literal>
+<Rock:NotificationBox ID="nbAssessmentWarning" runat="server" Title="Warning" Text="This is a warning." NotificationBoxType="Warning" />
 </asp:Panel>

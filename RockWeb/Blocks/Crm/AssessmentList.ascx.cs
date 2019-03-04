@@ -45,35 +45,44 @@ namespace Rockweb.Blocks.Crm
     [CodeEditorField( "Lava Template", "The lava template to use to format the entire block.  <span class='tip tip-lava'></span> <span class='tip tip-html'></span>", CodeEditorMode.Html, CodeEditorTheme.Rock, 400, true, @"
     <div class='panel panel-default container'>
       <div class='panel-heading'>Assessments</div>
-      <div class='panel panel-primary'>
-      <div class='panel-heading'>Panel with panel-primary class</div>
+
+{% for assessmenttype in AssessmentTypes %}
+    {% if assessmenttype.LastRequestObject.Status == 'Complete' %}
+       <div class='panel panel-success'>
+          <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+        
+          Completed: {{ assessmenttype.LastRequestObject.CompletedDate | Date:'M/d/yyyy'}} 
+    </br>
+    <a href='{{ assessmenttype.AssessmentResultsPath}}'>View Results</a>
     </div>
-    <div class='panel panel-success'>
-      <div class='panel-heading'>Panel with panel-success class</div>
+        </div>
+    {% elseif assessmenttype.LastRequestObject.Status == 'Pending' %}
+       <div class='panel panel-primary'>
+          <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+        Requested: {{assessmenttype.LastRequestObject.Requester}} ({{ assessmenttype.LastRequestObject.RequestedDate | Date:'M/d/yyyy'}})</br>
+        
+        <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
     </div>
-    <div class='panel panel-info'>
-      <div class='panel-heading'>Panel with panel-info class</div>
-    </div>
+        </div>
+    {% elseif assessmenttype.LastRequestObject.Status == 'Available' %}
+        <div class='panel panel-default'>
+          <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+        {{ assessmenttype.LastRequestObject.Status}}</br>
+        <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
+            </div>
+                </div>
+    {% endif %}
+{% endfor %}
 </div>
-{{Person.NickName}}
-{{LastRequestObject.AssessmentTypeID}}
-{% for assessment in Assessmentype %}
-        {{assessment.LastRequestObject.AssessmentTypeID}}
-        {{assessment.LastRequestObject}}
-{%endfor%}
-
-Other Loop
-{% for assessment in LastRequestObject %}
-        {{assessment.AssessmentTypeID}}
-        {{assessment.LastRequestObject}}
-{%endfor%}
-
 </div>" )]
     public partial class AssessmentList : Rock.Web.UI.RockBlock
     {
         private const string LAVAATTRIBUTEKEY = "LavaTemplate";
 
         #region Page Events
+        private bool _onlyShowRequested = true;
+        private bool _hideIfNoActiveRequests = false;
+        private bool _hideIfNoRequests = false;
 
         /// <summary>
         /// On-Init
@@ -82,13 +91,13 @@ Other Loop
         protected override void OnInit( EventArgs e )
         {
             // show hide requested
-            Boolean showRequested = GetAttributeValue( "OnlyShowRequested" ).AsBoolean();
+            _onlyShowRequested = GetAttributeValue( "OnlyShowRequested" ).AsBoolean();
 
             //hide if no active requests
-            Boolean hideIfNoActiveRequests = GetAttributeValue( "HideIfNoActiveRequests" ).AsBoolean();
+            _hideIfNoActiveRequests = GetAttributeValue( "HideIfNoActiveRequests" ).AsBoolean();
 
             //hide if no requests
-            Boolean hideIfNoRequests = GetAttributeValue( "HideIfNoRequests" ).AsBoolean();
+            _hideIfNoRequests = GetAttributeValue( "HideIfNoRequests" ).AsBoolean();
 
             base.OnInit( e );
        
@@ -108,28 +117,72 @@ Other Loop
         #endregion
 
         #region Methods
+        string _noActiveRequests = null;
+        string _noRequests = null;
+
         /// <summary>
-        /// Shows the instructions.
+        /// Merges the Lavafields to the control template.
         /// </summary>
         private void MergeLavaFields()
         {
-            pnlAssessments.Visible = true;
+            lAssessments.Visible = true;
+            nbAssessmentWarning.Visible = false;
 
             RockContext assessmentsTypes = new RockContext();
-            Dictionary<string, List<Assessment>> getalltypes = assessmentsTypes.AssessmentTypes.AsNoTracking().ToList().Select( a => new
+            var getallAssessmentTypes = assessmentsTypes.AssessmentTypes.AsNoTracking().Select( a => new
             {
                 Title = a.Title,
-                LastRequestObject = a.Assessments.ToList()
-            } ).ToDictionary( a => a.Title, a => a.LastRequestObject );
+                AssessmentPath = a.AssessmentPath,
+                AssessmentResultsPath = a.AssessmentResultsPath,
+                LastRequestObject = a.Assessments
+                    .Where( r => r.PersonAlias.PersonId == CurrentPersonId )
+                    .OrderByDescending( b => b.CreatedDateTime )
+                    .Select( r => new
+                    {
+                        RequestedDate = r.RequestedDateTime,
+                        CompletedDate = r.CompletedDateTime,
+                        Status = r.Status,
+                        Requester = r.RequesterPersonAlias.Person.NickName + " " + r.RequesterPersonAlias.Person.LastName
+                    } ).FirstOrDefault()
+            } ).ToList();
+
+            var entirelistPreFilters = getallAssessmentTypes.OrderBy( x => x.LastRequestObject.Status );
 
             // Resolve the text field merge fields
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, CurrentPerson );
-            if ( getalltypes != null )
+
+            //Checks for setting to hide if not active requests based on if there are any PENDING requests
+            if ( _hideIfNoActiveRequests && !entirelistPreFilters.Any(x=>x.LastRequestObject.Status==AssessmentRequestStatus.Pending) )
             {
-                mergeFields.Add( "AssessmentType", getalltypes);
-                mergeFields.Add( "Person", CurrentPerson );
+                nbAssessmentWarning.Visible = true;
+                nbAssessmentWarning.Text = "There are no active requests assigned to you.";
+                lAssessments.Visible = false;
             }
+
+            //Checks for setting to hide if no requests based on if there are any Requesters associated with the assessments
+            if ( _hideIfNoRequests && entirelistPreFilters.All( x => x.LastRequestObject.Requester==null) )
+            {
+                nbAssessmentWarning.Visible = true;
+                nbAssessmentWarning.Text = "There are no requests assigned to you.";
+                lAssessments.Visible = false;
+            }
+
+            //Shows all assessments if Only Show Requested is set to false and only requested if set to true, on the requester
+            if ( !_onlyShowRequested && entirelistPreFilters.Any() )
+            {
+                mergeFields.Add( "AssessmentTypes", entirelistPreFilters );
+            }
+            else if ( _onlyShowRequested && entirelistPreFilters.Any( x => x.LastRequestObject.Requester != null ) )
+            {
+                mergeFields.Add( "AssessmentTypes", entirelistPreFilters );
+            }
+           
             lAssessments.Text = GetAttributeValue( LAVAATTRIBUTEKEY ).ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
+            
+            if ( _noRequests!=null||_noActiveRequests!= null )
+            {
+                lAssessments.Text += _noRequests;
+            }
         }
         #endregion
     }

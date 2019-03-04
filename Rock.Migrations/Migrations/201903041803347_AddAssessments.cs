@@ -22,7 +22,7 @@ namespace Rock.Migrations
     /// <summary>
     ///
     /// </summary>
-    public partial class AddAssessment : Rock.Migrations.RockMigration
+    public partial class AddAssessments : Rock.Migrations.RockMigration
     {
         /// <summary>
         /// Operations to be performed during the upgrade process.
@@ -34,9 +34,9 @@ namespace Rock.Migrations
                 c => new
                     {
                         Id = c.Int(nullable: false, identity: true),
-                        PersonAliasID = c.Int(nullable: false),
-                        AssessmentTypeID = c.Int(nullable: false),
-                        RequestorPersonAliasID = c.Int(),
+                        PersonAliasId = c.Int(nullable: false),
+                        AssessmentTypeId = c.Int(nullable: false),
+                        RequesterPersonAliasId = c.Int(),
                         RequestedDateTime = c.DateTime(),
                         RequestedDueDate = c.DateTime(),
                         Status = c.Int(nullable: false),
@@ -51,15 +51,22 @@ namespace Rock.Migrations
                         ForeignId = c.Int(),
                         ForeignGuid = c.Guid(),
                         ForeignKey = c.String(maxLength: 100),
+                        AssessmentType_Id = c.Int(),
                     })
                 .PrimaryKey(t => t.Id)
+                .ForeignKey("dbo.AssessmentType", t => t.AssessmentType_Id)
+                .ForeignKey("dbo.AssessmentType", t => t.AssessmentTypeId, cascadeDelete: true)
                 .ForeignKey("dbo.PersonAlias", t => t.CreatedByPersonAliasId)
                 .ForeignKey("dbo.PersonAlias", t => t.ModifiedByPersonAliasId)
-                .ForeignKey("dbo.AssessmentType", t => t.AssessmentTypeID, cascadeDelete: true)
-                .Index(t => t.AssessmentTypeID)
+                .ForeignKey("dbo.PersonAlias", t => t.PersonAliasId)
+                .ForeignKey("dbo.PersonAlias", t => t.RequesterPersonAliasId)
+                .Index(t => t.PersonAliasId)
+                .Index(t => t.AssessmentTypeId)
+                .Index(t => t.RequesterPersonAliasId)
                 .Index(t => t.CreatedByPersonAliasId)
                 .Index(t => t.ModifiedByPersonAliasId)
-                .Index(t => t.Guid, unique: true);
+                .Index(t => t.Guid, unique: true)
+                .Index(t => t.AssessmentType_Id);
             
             CreateTable(
                 "dbo.AssessmentType",
@@ -74,6 +81,7 @@ namespace Rock.Migrations
                         RequiresRequest = c.Boolean(nullable: false),
                         MinimumDaysToRetake = c.Int(nullable: false),
                         ValidDuration = c.Int(nullable: false),
+                        IsSystem = c.Boolean(nullable: false),
                         CreatedDateTime = c.DateTime(),
                         ModifiedDateTime = c.DateTime(),
                         CreatedByPersonAliasId = c.Int(),
@@ -97,18 +105,24 @@ namespace Rock.Migrations
         /// </summary>
         public override void Down()
         {
-            DropForeignKey("dbo.AssessmentType", "ModifiedByPersonAliasId", "dbo.PersonAlias");
-            DropForeignKey("dbo.AssessmentType", "CreatedByPersonAliasId", "dbo.PersonAlias");
-            DropForeignKey("dbo.Assessment", "AssessmentTypeID", "dbo.AssessmentType");
+            DropForeignKey("dbo.Assessment", "RequesterPersonAliasId", "dbo.PersonAlias");
+            DropForeignKey("dbo.Assessment", "PersonAliasId", "dbo.PersonAlias");
             DropForeignKey("dbo.Assessment", "ModifiedByPersonAliasId", "dbo.PersonAlias");
             DropForeignKey("dbo.Assessment", "CreatedByPersonAliasId", "dbo.PersonAlias");
+            DropForeignKey("dbo.Assessment", "AssessmentTypeId", "dbo.AssessmentType");
+            DropForeignKey("dbo.AssessmentType", "ModifiedByPersonAliasId", "dbo.PersonAlias");
+            DropForeignKey("dbo.AssessmentType", "CreatedByPersonAliasId", "dbo.PersonAlias");
+            DropForeignKey("dbo.Assessment", "AssessmentType_Id", "dbo.AssessmentType");
             DropIndex("dbo.AssessmentType", new[] { "Guid" });
             DropIndex("dbo.AssessmentType", new[] { "ModifiedByPersonAliasId" });
             DropIndex("dbo.AssessmentType", new[] { "CreatedByPersonAliasId" });
+            DropIndex("dbo.Assessment", new[] { "AssessmentType_Id" });
             DropIndex("dbo.Assessment", new[] { "Guid" });
             DropIndex("dbo.Assessment", new[] { "ModifiedByPersonAliasId" });
             DropIndex("dbo.Assessment", new[] { "CreatedByPersonAliasId" });
-            DropIndex("dbo.Assessment", new[] { "AssessmentTypeID" });
+            DropIndex("dbo.Assessment", new[] { "RequesterPersonAliasId" });
+            DropIndex("dbo.Assessment", new[] { "AssessmentTypeId" });
+            DropIndex("dbo.Assessment", new[] { "PersonAliasId" });
             DropTable("dbo.AssessmentType");
             DropTable("dbo.Assessment");
         }

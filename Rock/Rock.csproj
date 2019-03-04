@@ -398,6 +398,8 @@
     <Compile Include="Financial\IThreeStepGatewayComponent.cs" />
     <Compile Include="Model\Assessment.cs" />
     <Compile Include="Model\AssessmentType.cs" />
+    <Compile Include="Model\CodeGenerated\AssessmentService.cs" />
+    <Compile Include="Model\CodeGenerated\AssessmentTypeService.cs" />
     <Compile Include="Model\CodeGenerated\CommunicationResponseService.cs" />
     <Compile Include="Model\CodeGenerated\NoteAttachmentService.cs" />
     <Compile Include="Model\CodeGenerated\RegistrationTemplateFeeItemService.cs" />
