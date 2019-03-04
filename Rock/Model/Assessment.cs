@@ -192,11 +192,6 @@ namespace Rock.Model
         /// Complete Status
         /// </summary>
         Complete = 1,
-
-        /// <summary>
-        /// Available Status
-        /// </summary>
-        Available = 2,
     }
     #endregion
 }

@@ -79,7 +79,7 @@ namespace Rockweb.Blocks.Crm
     {
         private const string LAVAATTRIBUTEKEY = "LavaTemplate";
 
-        #region Page Events
+        #region Control Events
         private bool _onlyShowRequested = true;
         private bool _hideIfNoActiveRequests = false;
         private bool _hideIfNoRequests = false;
@@ -117,9 +117,8 @@ namespace Rockweb.Blocks.Crm
         #endregion
 
         #region Methods
-        string _noActiveRequests = null;
-        string _noRequests = null;
-
+        Boolean _areThereAnyActiveRequests = false;
+        Boolean _areThereAnyRequests = false;
         /// <summary>
         /// Merges the Lavafields to the control template.
         /// </summary>
@@ -127,9 +126,10 @@ namespace Rockweb.Blocks.Crm
         {
             lAssessments.Visible = true;
             nbAssessmentWarning.Visible = false;
+           
+            RockContext db = new RockContext();
 
-            RockContext assessmentsTypes = new RockContext();
-            var getallAssessmentTypes = assessmentsTypes.AssessmentTypes.AsNoTracking().Select( a => new
+        var getallAssessmentTypes = db.AssessmentTypes.Select( a => new
             {
                 Title = a.Title,
                 AssessmentPath = a.AssessmentPath,
@@ -146,13 +146,26 @@ namespace Rockweb.Blocks.Crm
                     } ).FirstOrDefault()
             } ).ToList();
 
+            foreach ( var item in getallAssessmentTypes )
+            {
+                if (item.LastRequestObject!=null && item.LastRequestObject.Status==AssessmentRequestStatus.Pending )
+                {
+                    _areThereAnyActiveRequests = true;
+                }
+
+                if ( item.LastRequestObject != null && item.LastRequestObject.Requester!=null )
+                {
+                    _areThereAnyRequests = true;
+                }
+            }
+
             var entirelistPreFilters = getallAssessmentTypes.OrderBy( x => x.LastRequestObject.Status );
 
             // Resolve the text field merge fields
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, CurrentPerson );
 
             //Checks for setting to hide if not active requests based on if there are any PENDING requests
-            if ( _hideIfNoActiveRequests && !entirelistPreFilters.Any(x=>x.LastRequestObject.Status==AssessmentRequestStatus.Pending) )
+            if ( _hideIfNoActiveRequests && !_areThereAnyActiveRequests )
             {
                 nbAssessmentWarning.Visible = true;
                 nbAssessmentWarning.Text = "There are no active requests assigned to you.";
@@ -160,7 +173,7 @@ namespace Rockweb.Blocks.Crm
             }
 
             //Checks for setting to hide if no requests based on if there are any Requesters associated with the assessments
-            if ( _hideIfNoRequests && entirelistPreFilters.All( x => x.LastRequestObject.Requester==null) )
+            if ( _hideIfNoRequests && !_areThereAnyRequests )
             {
                 nbAssessmentWarning.Visible = true;
                 nbAssessmentWarning.Text = "There are no requests assigned to you.";
@@ -168,21 +181,28 @@ namespace Rockweb.Blocks.Crm
             }
 
             //Shows all assessments if Only Show Requested is set to false and only requested if set to true, on the requester
-            if ( !_onlyShowRequested && entirelistPreFilters.Any() )
+            if ( !_onlyShowRequested )
             {
                 mergeFields.Add( "AssessmentTypes", entirelistPreFilters );
             }
-            else if ( _onlyShowRequested && entirelistPreFilters.Any( x => x.LastRequestObject.Requester != null ) )
+            else if ( _onlyShowRequested )
             {
+                var test = entirelistPreFilters.Where( x => x.LastRequestObject.Requester != null );
+                ///Only Show Requested
+                ///
+                foreach ( var item in entirelistPreFilters )
+                {
+                    if ( item.LastRequestObject.Requester!=null )
+                    {
+
+                    }
+                }
+
                 mergeFields.Add( "AssessmentTypes", entirelistPreFilters );
             }
            
             lAssessments.Text = GetAttributeValue( LAVAATTRIBUTEKEY ).ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
             
-            if ( _noRequests!=null||_noActiveRequests!= null )
-            {
-                lAssessments.Text += _noRequests;
-            }
         }
         #endregion
     }
