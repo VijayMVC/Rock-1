@@ -52,5 +52,15 @@ namespace Rock.Financial
         /// The learn more URL.
         /// </value>
         string LearnMoreURL { get; }
+
+        /// <summary>
+        /// Creates the customer account using a token received from the HostedPaymentInfoControl <seealso cref="GetHostedPaymentInfoControl(FinancialGateway, bool, string)"/>
+        /// and returns a customer account token that can be used for future transactions.
+        /// </summary>
+        /// <param name="financialGateway">The financial gateway.</param>
+        /// <param name="paymentToken">The payment token.</param>
+        /// <param name="paymentInfo">The payment information.</param>
+        /// <returns></returns>
+        string CreateCustomerAccount( FinancialGateway financialGateway, string paymentToken, PaymentInfo paymentInfo, out string errorMessage );
     }
 }

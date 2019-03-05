@@ -188,6 +188,31 @@ namespace Rock.TransNational.Pi
         /// </value>
         public string ConfigureURL => "https://www.mywell.org/get-started/";
 
+        /// <summary>
+        /// Creates the customer account using a token received from the HostedPaymentInfoControl <seealso cref="M:Rock.Financial.IHostedGatewayComponent.GetHostedPaymentInfoControl(Rock.Model.FinancialGateway,System.Boolean,System.String)" />
+        /// and returns a customer account token that can be used for future transactions.
+        /// </summary>
+        /// <param name="financialGateway">The financial gateway.</param>
+        /// <param name="paymentToken">The payment token.</param>
+        /// <param name="paymentInfo">The payment information.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <returns></returns>
+        public string CreateCustomerAccount( FinancialGateway financialGateway, string paymentToken, PaymentInfo paymentInfo, out string errorMessage )
+        {
+            var createCustomerResponse = this.CreateCustomer( GetGatewayUrl( financialGateway ), GetPrivateApiKey( financialGateway ), paymentToken, paymentInfo );
+
+            if ( createCustomerResponse?.IsSuccessStatus() != true )
+            {
+                errorMessage = $"Failure: {createCustomerResponse?.Message ?? "null response from CreateCustomerAccount"}";
+                return null;
+            }
+            else
+            {
+                errorMessage = string.Empty;
+                return createCustomerResponse?.Data?.Id;
+            }
+        }
+
         #endregion IHostedGatewayComponent
 
         #region PiGateway Rock Wrappers
@@ -197,7 +222,7 @@ namespace Rock.TransNational.Pi
         /// <summary>
         /// Creates the customer.
         /// https://sandbox.gotnpgateway.com/docs/api/#create-a-new-customer
-        /// NOTE: Pi Gateway supports multiple payment tokens per customer, but Rock will implement it as one Payment Method per Customer, and 0 or more Pi Customers per Rock Person.
+        /// NOTE: Pi Gateway supports multiple payment tokens per customer, but Rock will implement it as one Payment Method per Customer, and 0 or more Pi Customers (one for each payment entry) per Rock Person.
         /// </summary>
         /// <param name="gatewayUrl">The gateway URL.</param>
         /// <param name="apiKey">The API key.</param>
@@ -680,9 +705,6 @@ namespace Rock.TransNational.Pi
             if ( creditCardResponse != null )
             {
                 financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD.AsGuid() );
-                
-                // financialTransaction.FinancialPaymentDetail.CreditCardTypeValueId;
-
                 financialTransaction.FinancialPaymentDetail.AccountNumberMasked = creditCardResponse.MaskedCard;
 
                 if ( creditCardResponse.ExpirationDate?.Length == 5 )
@@ -975,6 +997,8 @@ namespace Rock.TransNational.Pi
             errorMessage = string.Empty;
             return scheduledTransaction.GatewayScheduleId?.ToString();
         }
+
+       
 
         #endregion GatewayComponent implementation
     }

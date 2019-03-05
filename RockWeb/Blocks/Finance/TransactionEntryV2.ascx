@@ -130,10 +130,10 @@
                     </asp:Panel>
 
 
-                    <%-- Collect Payment Info (step 2) --%>
+                    <%-- Collect Payment Info (step 2). Skip this if they using a saved giving method. --%>
                     <asp:Panel ID="pnlPaymentInfo" runat="server" Visible="false">
                         <Rock:PanelWidget ID="pwTestCards" runat="server" Title="Test Cards">
-                            <table class="grid-table table table-bordered table-striped table-hover" style="font-family:Consolas">
+                            <table class="grid-table table table-bordered table-striped table-hover" style="font-family: Consolas">
                                 <thead>
                                     <tr>
                                         <th>Card Number</th>
@@ -222,18 +222,29 @@
                     <%-- Collect/Update Personal Information (step 3) --%>
                     <asp:Panel ID="pnlPersonalInformation" runat="server" Visible="false">
 
-                        <asp:Panel ID="pnlLoggedInNameDisplay" runat="server">
-                            <asp:Literal ID="lCurrentPersonFullName" runat="server" />
-                        </asp:Panel>
-                        <asp:Panel ID="pnlAnonymousNameEntry" runat="server">
-                            <Rock:RockTextBox ID="tbFirstName" runat="server" Placeholder="First Name" />
-                            <Rock:RockTextBox ID="tbLastName" runat="server" Placeholder="Last Name" />
+                        <Rock:Toggle ID="tglIndividualOrBusiness" runat="server" OnText="Business" OffText="Individual" OnCheckedChanged="tglIndividualOrBusiness_CheckedChanged" />
+
+                        <asp:Panel ID="pnlPersonInformationAsIndividual" runat="server">
+                            <asp:Panel ID="pnlLoggedInNameDisplay" runat="server">
+                                <asp:Literal ID="lCurrentPersonFullName" runat="server" />
+                            </asp:Panel>
+                            <asp:Panel ID="pnlAnonymousNameEntry" runat="server">
+                                <Rock:RockTextBox ID="tbFirstName" runat="server" Placeholder="First Name" />
+                                <Rock:RockTextBox ID="tbLastName" runat="server" Placeholder="Last Name" />
+                            </asp:Panel>
+
+                            <Rock:AddressControl ID="acAddressIndividual" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
+                            <Rock:PhoneNumberBox ID="pnbPhoneIndividual" runat="server" Placeholder="Phone" />
+                            <Rock:EmailBox ID="tbEmailIndividual" runat="server" Placeholder="Email" />
                         </asp:Panel>
 
-
-                        <Rock:AddressControl ID="acAddress" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
-                        <Rock:PhoneNumberBox ID="pnbPhone" runat="server" Placeholder="Phone" />
-                        <Rock:EmailBox ID="tbEmail" runat="server" Placeholder="Email" />
+                        <asp:Panel ID="pnlPersonInformationAsBusiness" runat="server" Visible="false">
+                            <Rock:RockRadioButtonList ID="cblSelectBusiness" runat="server" Label="Business" RepeatDirection="Horizontal" AutoPostBack="true" OnSelectedIndexChanged="cblSelectBusiness_SelectedIndexChanged" />
+                            <Rock:RockTextBox ID="tbBusinessName" runat="server" Placeholder="Business Name" />
+                            <Rock:AddressControl ID="acAddressBusiness" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
+                            <Rock:PhoneNumberBox ID="pnbPhoneBusiness" runat="server" Placeholder="Business Phone" />
+                            <Rock:EmailBox ID="tbEmailBusiness" runat="server" Placeholder="Business Email" />
+                        </asp:Panel>
 
                         <Rock:NotificationBox ID="nbProcessTransactionError" runat="server" NotificationBoxType="Danger" Visible="false" />
 
@@ -248,7 +259,42 @@
                         <asp:HiddenField ID="hfTransactionGuid" runat="server" />
                         <asp:Literal ID="lTransactionSummaryHTML" runat="server" />
 
-                        <%-- TODO Make Giving Easier --%>
+                        <%-- Make Giving Even Easier --%>
+                        <asp:Panel ID="pnlSaveAccountPrompt" runat="server" Visible="false">
+
+                            <h2>
+                                <asp:Literal ID="lSaveAccountTitle" runat="server" /></h2>
+                            <Rock:RockCheckBox ID="cbSaveAccount" runat="server" Text="Save account information for future gifts" CssClass="toggle-input" />
+
+                            <asp:Panel ID="pnlSaveAccountEntry" runat="server" class="toggle-content">
+                                <Rock:RockTextBox ID="tbSaveAccount" runat="server" Label="Name for this account" CssClass="input-large" />
+
+                                <asp:PlaceHolder ID="pnlCreateLogin" runat="server" Visible="false">
+
+                                    <div class="control-group">
+                                        <div class="controls">
+                                            <div class="alert alert-info">
+                                                <b>Note:</b> For security purposes you will need to login to use your saved account information. To create
+	    			                    a login account please provide a user name and password below. You will be sent an email with the account
+	    			                    information above as a reminder.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Rock:RockTextBox ID="tbUserName" runat="server" Label="Username" CssClass="input-medium" />
+                                    <Rock:RockTextBox ID="tbPassword" runat="server" Label="Password" CssClass="input-medium" TextMode="Password" />
+                                    <Rock:RockTextBox ID="tbPasswordConfirm" runat="server" Label="Confirm Password" CssClass="input-medium" TextMode="Password" />
+
+                                </asp:PlaceHolder>
+
+                                <Rock:NotificationBox ID="nbSaveAccount" runat="server" Visible="false" NotificationBoxType="Danger" />
+
+                                <div id="divSaveActions" runat="server" class="actions">
+                                    <asp:LinkButton ID="btnSaveAccount" runat="server" Text="Save Account" CssClass="btn btn-primary" OnClick="btnSaveAccount_Click" />
+                                </div>
+                            </asp:Panel>
+
+                        </asp:Panel>
                     </asp:Panel>
 
                 </div>
@@ -258,7 +304,7 @@
 
         <script type="text/javascript">
 
-            // Scheduled Transaction Javascripts
+            // Scheduled Transaction JavaScripts
             function setScheduledDetailsVisibility($container, animate) {
                 var $scheduledDetails = $container.find('.js-scheduled-details');
                 var $expanded = $container.find('.js-scheduled-transaction-expanded');

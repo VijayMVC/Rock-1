@@ -34,6 +34,7 @@ namespace Rock.Financial
 
         /// <summary>
         /// Gets or sets the reference number. Usually a reference to previously collected CreditCard/ACH data.
+        /// To use a saved customer record from the payment gateway, set <seealso cref="GatewayPersonIdentifier"/> instead.
         /// </summary>
         public string ReferenceNumber { get; set; }
 
