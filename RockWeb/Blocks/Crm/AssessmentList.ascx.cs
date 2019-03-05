@@ -45,9 +45,10 @@ namespace Rockweb.Blocks.Crm
     [CodeEditorField( "Lava Template", "The lava template to use to format the entire block.  <span class='tip tip-lava'></span> <span class='tip tip-html'></span>", CodeEditorMode.Html, CodeEditorTheme.Rock, 400, true, @"
     <div class='panel panel-default container'>
       <div class='panel-heading'>Assessments</div>
-
+{{ 'Lava' | Debug }}
 {% for assessmenttype in AssessmentTypes %}
-    {% if assessmenttype.LastRequestObject.Status == 'Complete' %}
+ 
+{% if assessmenttype.LastRequestObject.Status == 'Complete' %}
        <div class='panel panel-success'>
           <div class='panel-heading'> {{ assessmenttype.Title }}</br>
         
@@ -135,7 +136,7 @@ namespace Rockweb.Blocks.Crm
                 AssessmentPath = a.AssessmentPath,
                 AssessmentResultsPath = a.AssessmentResultsPath,
                 LastRequestObject = a.Assessments
-                    .Where( r => r.PersonAlias.PersonId == CurrentPersonId )
+                    .Where( r => r.PersonAlias.PersonId == CurrentPersonId)
                     .OrderByDescending( b => b.CreatedDateTime )
                     .Select( r => new
                     {
@@ -146,6 +147,7 @@ namespace Rockweb.Blocks.Crm
                     } ).FirstOrDefault()
             } ).ToList();
 
+            ///Just playing out the logic before refactoring into something more isolated if possible
             foreach ( var item in getallAssessmentTypes )
             {
                 if (item.LastRequestObject!=null && item.LastRequestObject.Status==AssessmentRequestStatus.Pending )
@@ -156,6 +158,11 @@ namespace Rockweb.Blocks.Crm
                 if ( item.LastRequestObject != null && item.LastRequestObject.Requester!=null )
                 {
                     _areThereAnyRequests = true;
+                }
+
+                if ( item.LastRequestObject==null )
+                {
+                    ///Console.Write( "" ); is read only- need to find out if I can somehow check for null in LAVA
                 }
             }
 
