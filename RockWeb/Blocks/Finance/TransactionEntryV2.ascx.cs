@@ -1858,7 +1858,6 @@ mission. We are so grateful for your commitment.</p>
 
             if ( IsScheduledTransaction() )
             {
-                // todo
                 paymentSchedule = new PaymentSchedule
                 {
                     TransactionFrequencyValue = DefinedValueCache.Get( ddlFrequency.SelectedValue.AsInteger() ),
@@ -2057,23 +2056,7 @@ mission. We are so grateful for your commitment.</p>
                 transaction.SourceTypeValueId = DefinedValueCache.GetId( sourceGuid.Value );
             }
 
-            var transactionEntity = this.GetTransactionEntity();
-            var selectedAccountAmounts = caapPromptForAccountAmounts.AccountAmounts;
-
-            foreach ( var selectedAccountAmount in selectedAccountAmounts.Where( a => a.Amount.HasValue && a.Amount != 0 ) )
-            {
-                var transactionDetail = new FinancialTransactionDetail();
-                transactionDetail.Amount = selectedAccountAmount.Amount.Value;
-                transactionDetail.AccountId = selectedAccountAmount.AccountId;
-
-                if ( transactionEntity != null )
-                {
-                    transactionDetail.EntityTypeId = transactionEntity.TypeId;
-                    transactionDetail.EntityId = transactionEntity.Id;
-                }
-
-                transaction.TransactionDetails.Add( transactionDetail );
-            }
+            PopulateTransactionDetails( transaction.TransactionDetails );
 
             var batchService = new FinancialBatchService( rockContext );
 
@@ -2113,6 +2096,7 @@ mission. We are so grateful for your commitment.</p>
                 }
             }
 
+            // TODO, Performance?!?
             batch.Transactions.Add( transaction );
 
             rockContext.SaveChanges();
@@ -2128,6 +2112,32 @@ mission. We are so grateful for your commitment.</p>
             SendReceipt( transaction.Id );
 
             TransactionCode = transaction.TransactionCode;
+        }
+
+        /// <summary>
+        /// Populates the transaction details for a FinancialTransaction or ScheduledFinancialTransaction
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="transactionDetails">The transaction details.</param>
+        private void PopulateTransactionDetails<T>( ICollection<T> transactionDetails ) where T: ITransactionDetail, new()
+        {
+            var transactionEntity = this.GetTransactionEntity();
+            var selectedAccountAmounts = caapPromptForAccountAmounts.AccountAmounts;
+
+            foreach ( var selectedAccountAmount in selectedAccountAmounts.Where( a => a.Amount.HasValue && a.Amount != 0 ) )
+            {
+                var transactionDetail = new T();
+                transactionDetail.Amount = selectedAccountAmount.Amount.Value;
+                transactionDetail.AccountId = selectedAccountAmount.AccountId;
+
+                if ( transactionEntity != null )
+                {
+                    transactionDetail.EntityTypeId = transactionEntity.TypeId;
+                    transactionDetail.EntityId = transactionEntity.Id;
+                }
+
+                transactionDetails.Add( transactionDetail );
+            }
         }
 
         /// <summary>
@@ -2151,6 +2161,8 @@ mission. We are so grateful for your commitment.</p>
             scheduledTransaction.AuthorizedPersonAliasId = new PersonAliasService( rockContext ).GetPrimaryAliasId( personId ).Value;
             scheduledTransaction.FinancialGatewayId = financialGateway.Id;
 
+            scheduledTransaction.Summary = paymentInfo.Comment1;
+
             if ( scheduledTransaction.FinancialPaymentDetail == null )
             {
                 scheduledTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
@@ -2158,7 +2170,17 @@ mission. We are so grateful for your commitment.</p>
 
             scheduledTransaction.FinancialPaymentDetail.SetFromPaymentInfo( paymentInfo, gateway as GatewayComponent, rockContext );
 
-            // TODO
+            Guid? sourceGuid = GetAttributeValue( AttributeKey.FinancialSourceType ).AsGuidOrNull();
+            if ( sourceGuid.HasValue )
+            {
+                scheduledTransaction.SourceTypeValueId = DefinedValueCache.GetId( sourceGuid.Value );
+            }
+
+            PopulateTransactionDetails( scheduledTransaction.ScheduledTransactionDetails );
+
+            var financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
+            financialScheduledTransactionService.Add( scheduledTransaction );
+            rockContext.SaveChanges();
         }
 
         /// <summary>
