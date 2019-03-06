@@ -1531,6 +1531,25 @@ namespace Rock.TransNational.Pi
     }
 
     /// <summary>
+    /// https://sandbox.gotnpgateway.com/docs/api/#get-a-subscription
+    /// NOTE: Documentation says that <see cref="Data"/> is a single object and not an array
+    /// </summary>
+    public class SubscriptionGetResponse : BaseResponseData
+    {
+        /// <summary>
+        /// Gets or sets the data.
+        /// </summary>
+        /// <value>
+        /// The data.
+        /// </value>
+        [JsonProperty( "data" )]
+        public SubscriptionData[] Data { get; set; }
+
+        [JsonProperty( "total_count" )]
+        public int TotalCount { get; set; }
+    }
+
+    /// <summary>
     /// https://sandbox.gotnpgateway.com/docs/api/#create-a-subscription
     /// </summary>
     public class SubscriptionData
@@ -1561,6 +1580,15 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "description" )]
         public string Description { get; set; }
+
+        /// <summary>
+        /// Gets or sets the customer.
+        /// </summary>
+        /// <value>
+        /// The customer.
+        /// </value>
+        [JsonProperty( "customer" )]
+        public SubscriptionCustomer Customer { get; set; }
 
         /// <summary>
         /// Gets or sets the amount in Dollars (and sets <seealso cref="AmountCents"/>)
@@ -1621,6 +1649,16 @@ namespace Rock.TransNational.Pi
         public int? Duration { get; set; }
 
         /// <summary>
+        /// Gets or sets the next bill date.
+        /// </summary>
+        /// <value>
+        /// The next bill date.
+        /// </value>
+        [JsonProperty( "next_bill_date" )]
+        [JsonConverter( typeof( RockJsonIsoDateConverter ) )]
+        public DateTime? NextBillDate { get; set; }
+
+        /// <summary>
         /// Gets or sets the created date time.
         /// </summary>
         /// <value>
@@ -1637,6 +1675,16 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "updated_at" )]
         public DateTime? UpdatedDateTime { get; set; }
+
+        /// <summary>
+        /// Newtonsoft.Json.JsonExtensionData instructs the Newtonsoft.Json.JsonSerializer to deserialize properties with no
+        /// matching class member into the specified collection
+        /// </summary>
+        /// <value>
+        /// The other data.
+        /// </value>
+        [Newtonsoft.Json.JsonExtensionData( ReadData = true, WriteData = false )]
+        public IDictionary<string, Newtonsoft.Json.Linq.JToken> _additionalData { get; set; }
     }
 
     #endregion Subscriptions

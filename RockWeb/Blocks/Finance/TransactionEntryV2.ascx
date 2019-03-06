@@ -114,7 +114,7 @@
 
                         </asp:Panel>
                         <Rock:NotificationBox ID="nbPromptForAmountsWarning" runat="server" NotificationBoxType="Validation" Visible="false" />
-                        <asp:LinkButton ID="btnGiveNow" runat="server" CssClass="btn btn-primary" Text="Give Now" OnClick="btnGiveNow_Click" />
+                        <Rock:BootstrapButton ID="btnGiveNow" runat="server" CssClass="btn btn-primary" Text="Give Now" OnClick="btnGiveNow_Click" />
                     </asp:Panel>
 
 
@@ -244,13 +244,29 @@
                             <Rock:AddressControl ID="acAddressBusiness" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
                             <Rock:PhoneNumberBox ID="pnbPhoneBusiness" runat="server" Placeholder="Business Phone" />
                             <Rock:EmailBox ID="tbEmailBusiness" runat="server" Placeholder="Business Email" />
+
+                            <%-- If anonymous and giving as a new business, prompt for Contact information --%>
+                            <asp:Panel ID="pnlBusinessContactAnonymous" runat="server" Visible="false">
+                                <hr />
+                                <h4>Business Contact</h4>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <Rock:RockTextBox ID="tbBusinessContactFirstName" runat="server" Placeholder="First Name" />
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <Rock:RockTextBox ID="tbBusinessContactLastName" runat="server" Placeholder="Last Name" />
+                                    </div>
+                                </div>
+                                <Rock:PhoneNumberBox ID="pnbBusinessContactPhone" runat="server" Placeholder="Phone"></Rock:PhoneNumberBox>
+                                <Rock:RockTextBox ID="tbBusinessContactEmail" runat="server" Placeholder="Email"></Rock:RockTextBox>
+                            </asp:Panel>
                         </asp:Panel>
 
                         <Rock:NotificationBox ID="nbProcessTransactionError" runat="server" NotificationBoxType="Danger" Visible="false" />
 
                         <div class="navigate-actions actions">
                             <asp:LinkButton ID="btnPersonalInformationBack" runat="server" CssClass="btn btn-default" Text="Back" OnClick="btnPersonalInformationBack_Click" />
-                            <asp:LinkButton ID="btnPersonalInformationNext" runat="server" CssClass="btn btn-primary" Text="Finish" OnClick="btnPersonalInformationNext_Click" />
+                            <Rock:BootstrapButton ID="btnPersonalInformationNext" runat="server" CssClass="btn btn-primary" Text="Finish" OnClick="btnPersonalInformationNext_Click" />
                         </div>
                     </asp:Panel>
 
@@ -267,9 +283,9 @@
                             <Rock:RockCheckBox ID="cbSaveAccount" runat="server" Text="Save account information for future gifts" CssClass="toggle-input" />
 
                             <asp:Panel ID="pnlSaveAccountEntry" runat="server" class="toggle-content">
-                                <Rock:RockTextBox ID="tbSaveAccount" runat="server" Label="Name for this account" CssClass="input-large" />
+                                <Rock:RockTextBox ID="tbSaveAccount" runat="server" Label="Name for this account" CssClass="input-large" Required="true" ValidationGroup="vgSaveAccount" />
 
-                                <asp:PlaceHolder ID="pnlCreateLogin" runat="server" Visible="false">
+                                <asp:Panel ID="pnlCreateLogin" runat="server" Visible="false">
 
                                     <div class="control-group">
                                         <div class="controls">
@@ -285,12 +301,12 @@
                                     <Rock:RockTextBox ID="tbPassword" runat="server" Label="Password" CssClass="input-medium" TextMode="Password" />
                                     <Rock:RockTextBox ID="tbPasswordConfirm" runat="server" Label="Confirm Password" CssClass="input-medium" TextMode="Password" />
 
-                                </asp:PlaceHolder>
+                                </asp:Panel>
 
                                 <Rock:NotificationBox ID="nbSaveAccount" runat="server" Visible="false" NotificationBoxType="Danger" />
 
                                 <div id="divSaveActions" runat="server" class="actions">
-                                    <asp:LinkButton ID="btnSaveAccount" runat="server" Text="Save Account" CssClass="btn btn-primary" OnClick="btnSaveAccount_Click" />
+                                    <Rock:BootstrapButton ID="btnSaveAccount" runat="server" Text="Save Account" CssClass="btn btn-primary" ValidationGroup="vgSaveAccount" OnClick="btnSaveAccount_Click" DataLoadingText="Saving..." />
                                 </div>
                             </asp:Panel>
 
@@ -357,6 +373,11 @@
                     }
 
                     setScheduledDetailsVisibility($scheduledDetailsContainer, true);
+                });
+
+                // Hide or show a div based on selection of checkbox
+                $('input:checkbox.toggle-input').unbind('click').on('click', function () {
+                    $(this).parents('.checkbox').next('.toggle-content').slideToggle();
                 });
             });
         </script>

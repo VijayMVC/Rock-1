@@ -243,6 +243,7 @@ namespace Rock.TransNational.Pi
                 {
                     FirstName = paymentInfo.FirstName,
                     LastName = paymentInfo.LastName,
+                    Company = paymentInfo.BusinessName,
                     AddressLine1 = paymentInfo.Street1,
                     AddressLine2 = paymentInfo.Street2,
                     City = paymentInfo.City,
@@ -253,6 +254,12 @@ namespace Rock.TransNational.Pi
                     Phone = paymentInfo.Phone,
                 }
             };
+
+            if ( createCustomer.BillingAddress.FirstName.IsNullOrWhiteSpace() )
+            {
+                // if the Gateway requires FirstName, just put '-' if no FirstName was provided
+                createCustomer.BillingAddress.FirstName = "-";
+            }
 
             restRequest.AddJsonBody( createCustomer );
 
@@ -595,11 +602,12 @@ namespace Rock.TransNational.Pi
 
         /// <summary>
         /// Gets the subscription.
+        /// https://sandbox.gotnpgateway.com/docs/api/#get-a-subscription
         /// </summary>
         /// <param name="apiKey">The API key.</param>
         /// <param name="subscriptionId">The subscription identifier.</param>
         /// <returns></returns>
-        private SubscriptionResponse GetSubscription( string gatewayUrl, string apiKey, string subscriptionId )
+        private SubscriptionGetResponse GetSubscription( string gatewayUrl, string apiKey, string subscriptionId )
         {
             var restClient = new RestClient( gatewayUrl );
             RestRequest restRequest = new RestRequest( $"api/recurring/subscription/{subscriptionId}", Method.GET );
@@ -607,7 +615,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return ParseResponse<SubscriptionResponse>( response );
+            return ParseResponse<SubscriptionGetResponse>( response );
         }
 
         #endregion Subscriptions
@@ -796,7 +804,7 @@ namespace Rock.TransNational.Pi
                 throw new ReferencePaymentInfoRequired();
             }
 
-            var customerId = referencedPaymentInfo.ReferenceNumber;
+            var customerId = referencedPaymentInfo.GatewayPersonIdentifier;
 
             SubscriptionRequestParameters subscriptionParameters = new SubscriptionRequestParameters
             {
@@ -823,6 +831,7 @@ namespace Rock.TransNational.Pi
             scheduledTransaction.TransactionCode = subscriptionId;
             scheduledTransaction.GatewayScheduleId = subscriptionId;
             scheduledTransaction.FinancialGatewayId = financialGateway.Id;
+            scheduledTransaction.FinancialGateway = financialGateway;
 
             GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
             return scheduledTransaction;
@@ -916,10 +925,19 @@ namespace Rock.TransNational.Pi
             var subscriptionId = scheduledTransaction.GatewayScheduleId;
 
             FinancialGateway financialGateway = scheduledTransaction.FinancialGateway;
+            if ( financialGateway == null && scheduledTransaction.FinancialGatewayId.HasValue )
+            {
+                financialGateway = new FinancialGatewayService( new Rock.Data.RockContext() ).GetNoTracking( scheduledTransaction.FinancialGatewayId.Value );
+            }
 
             var subscriptionResult = this.GetSubscription( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), subscriptionId );
             if ( subscriptionResult.IsSuccessStatus() )
             {
+                var subscriptionInfo = subscriptionResult.Data?.FirstOrDefault();
+                if ( subscriptionInfo != null )
+                {
+                    scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDate;
+                }
                 errorMessage = string.Empty;
                 return true;
             }
@@ -998,7 +1016,7 @@ namespace Rock.TransNational.Pi
             return scheduledTransaction.GatewayScheduleId?.ToString();
         }
 
-       
+
 
         #endregion GatewayComponent implementation
     }

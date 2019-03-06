@@ -771,7 +771,7 @@ mission. We are so grateful for your commitment.</p>
                 return;
             }
 
-            SetTargetPerson();
+            SetInitialTargetPersonControls();
 
             lIntroMessage.Text = this.GetAttributeValue( AttributeKey.IntroMessage );
 
@@ -1134,10 +1134,9 @@ mission. We are so grateful for your commitment.</p>
         #region Transaction Entry Related
 
         /// <summary>
-        /// Sets the target person
+        /// Initializes the UI based on the initial target person.
         /// </summary>
-        /// <param name="rockContext">The rock context.</param>
-        private void SetTargetPerson()
+        private void SetInitialTargetPersonControls()
         {
             // If impersonation is allowed, and a valid person key was used, set the target to that person
             Person targetPerson = null;
@@ -1245,6 +1244,9 @@ mission. We are so grateful for your commitment.</p>
             }
 
             pnlAnonymousNameEntry.Visible = targetPerson == null;
+
+            // show a prompt for Business Contact on the pnlPersonInformationAsBusiness panel if we don't have a target person so that we can create a person to be associated with the new business
+            pnlBusinessContactAnonymous.Visible = targetPerson == null;
         }
 
         /// <summary>
@@ -1275,6 +1277,29 @@ mission. We are so grateful for your commitment.</p>
             string firstName = tbFirstName.Text;
             string lastName = tbLastName.Text;
             string email = tbEmailIndividual.Text;
+
+            if ( firstName.IsNotNullOrWhiteSpace() && lastName.IsNotNullOrWhiteSpace() && email.IsNotNullOrWhiteSpace() )
+            {
+                var personQuery = new PersonService.PersonMatchQuery( firstName, lastName, email, pnbPhoneIndividual.Number );
+                var matchingPerson = new PersonService( new RockContext() ).FindPerson( personQuery, true );
+                if ( matchingPerson != null )
+                {
+                    return matchingPerson;
+                }
+            }
+
+            return _createPersonOrBusiness( false, firstName, lastName, email );
+        }
+
+        /// <summary>
+        /// Creates the business contact person.
+        /// </summary>
+        /// <returns></returns>
+        private Person CreateBusinessContactPerson()
+        {
+            string firstName = tbBusinessContactFirstName.Text;
+            string lastName = tbBusinessContactLastName.Text;
+            string email = tbBusinessContactEmail.Text;
 
             if ( firstName.IsNotNullOrWhiteSpace() && lastName.IsNotNullOrWhiteSpace() && email.IsNotNullOrWhiteSpace() )
             {
@@ -1344,7 +1369,7 @@ mission. We are so grateful for your commitment.</p>
             {
                 newPersonOrBusiness.RecordTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() );
             }
-            
+
             if ( dvcConnectionStatus != null )
             {
                 newPersonOrBusiness.ConnectionStatusValueId = dvcConnectionStatus.Id;
@@ -1640,6 +1665,7 @@ mission. We are so grateful for your commitment.</p>
             if ( caapPromptForAccountAmounts.IsValidAmountSelected() )
             {
                 nbPromptForAmountsWarning.Visible = false;
+                pnlPersonalInformation.Visible = false;
                 var totalAmount = caapPromptForAccountAmounts.AccountAmounts.Sum( a => a.Amount ?? 0.00M );
 
                 // get the accountId(s) that have an amount specified
@@ -1661,7 +1687,6 @@ mission. We are so grateful for your commitment.</p>
 
                 if ( UsingPersonSavedAccount() )
                 {
-                    // TODO: Ask if we can skip this step and go directly to ProcessTransaction();
                     NavigateToStep( EntryStep.GetPersonalInformation );
                 }
                 else
@@ -1697,6 +1722,7 @@ mission. We are so grateful for your commitment.</p>
             //// When _hostedPaymentInfoControl gets a token response, the _hostedPaymentInfoControl_TokenReceived event will be triggered
             //// If _hostedPaymentInfoControl_TokenReceived gets a valid token, it will call btnGetPaymentInfoNext_Click
 
+            nbProcessTransactionError.Visible = false;
             NavigateToStep( EntryStep.GetPersonalInformation );
         }
 
@@ -1737,9 +1763,15 @@ mission. We are so grateful for your commitment.</p>
         {
             var transactionGuid = hfTransactionGuid.Value.AsGuid();
             var rockContext = new RockContext();
-            FinancialTransaction transactionAlreadyExists = new FinancialTransactionService( rockContext ).Queryable().FirstOrDefault( a => a.Guid == transactionGuid );
 
-            if ( transactionAlreadyExists != null )
+            // to make duplicate transactions impossible, make sure that our Transaction hasn't already been processed as a regular or scheduled transaction
+            bool transactionAlreadyExists = new FinancialTransactionService( rockContext ).Queryable().Any( a => a.Guid == transactionGuid );
+            if ( !transactionAlreadyExists )
+            {
+                transactionAlreadyExists = new FinancialScheduledTransactionService( rockContext ).Queryable().Any( a => a.Guid == transactionGuid );
+            }
+
+            if ( transactionAlreadyExists )
             {
                 ShowTransactionSummary();
             }
@@ -1749,6 +1781,7 @@ mission. We are so grateful for your commitment.</p>
             var financialGatewayComponent = this.FinancialGatewayComponent;
             string errorMessage;
             var paymentInfo = CreatePaymentInfoFromControls( givingAsBusiness );
+            nbProcessTransactionError.Visible = false;
 
             // use the paymentToken as the reference number for creating the customer account
             var savedAccountId = ddlPersonSavedAccount.SelectedValue.AsIntegerOrNull();
@@ -1761,50 +1794,106 @@ mission. We are so grateful for your commitment.</p>
                     paymentInfo.GatewayPersonIdentifier = financialPersonSavedAccount.ReferenceNumber;
                 }
             }
+
             if ( paymentInfo.GatewayPersonIdentifier.IsNullOrWhiteSpace() )
             {
                 var paymentToken = financialGatewayComponent.GetHostedPaymentInfoToken( this.FinancialGateway, _hostedPaymentInfoControl, out errorMessage );
                 var customerToken = financialGatewayComponent.CreateCustomerAccount( this.FinancialGateway, paymentToken, paymentInfo, out errorMessage );
+                if ( errorMessage.IsNotNullOrWhiteSpace() || customerToken.IsNullOrWhiteSpace() )
+                {
+                    nbProcessTransactionError.Text = errorMessage ?? "Unknown Error";
+                    nbProcessTransactionError.Visible = true;
+                    return;
+                }
+
                 paymentInfo.GatewayPersonIdentifier = customerToken;
 
                 // save the customer token in view state since we'll need it in case they create a saved account
                 this.CustomerTokenEncrypted = Rock.Security.Encryption.EncryptString( customerToken );
+
             }
 
-            var financialTransaction = this.FinancialGatewayComponent.Charge( this.FinancialGateway, paymentInfo, out errorMessage );
+            // determine or create the Person record that this transaction is for
+            var targetPerson = this.GetTargetPerson( rockContext );
+            int transactionPersonId;
 
-            nbProcessTransactionError.Visible = financialTransaction == null;
-            if ( financialTransaction == null )
+            if ( targetPerson == null )
             {
-                // TODO: Test Error Logic
-                nbProcessTransactionError.Text = errorMessage ?? "Unknown Error";
-            }
-            else
-            {
-
-                var targetPerson = this.GetTargetPerson( rockContext );
-
-                if ( targetPerson == null )
+                if ( givingAsBusiness )
+                {
+                    targetPerson = this.CreateBusinessContactPerson();
+                }
+                else
                 {
                     targetPerson = this.CreateTargetPerson();
                 }
 
-                UpdatePersonFromInputInformation( targetPerson );
-                int transactionPersonId;
-                if ( givingAsBusiness )
+                hfTargetPersonId.Value = targetPerson.Id.ToString();
+            }
+
+            UpdatePersonFromInputInformation( targetPerson );
+            
+            if ( givingAsBusiness )
+            {
+                int? businessId = cblSelectBusiness.SelectedValue.AsInteger();
+                var business = new PersonService( rockContext ).Get( businessId.Value );
+                if ( business == null )
                 {
-                    int? businessId = cblSelectBusiness.SelectedValue.AsInteger();
-                    var business = new PersonService( rockContext ).Get( businessId.Value );
-                    UpdateBusinessFromInputInformation( business );
-                    transactionPersonId = business.Id;
-                }
-                else
-                {
-                    transactionPersonId = targetPerson.Id;
+                    business = CreateBusiness( targetPerson );
                 }
 
+                UpdateBusinessFromInputInformation( business );
+                transactionPersonId = business.Id;
+            }
+            else
+            {
+                transactionPersonId = targetPerson.Id;
+            }
+
+            nbProcessTransactionError.Visible = false;
+
+            FinancialTransaction financialTransaction = null;
+            FinancialScheduledTransaction financialScheduledTransaction = null;
+            PaymentSchedule paymentSchedule = null;
+
+            if ( IsScheduledTransaction() )
+            {
+                // todo
+                paymentSchedule = new PaymentSchedule
+                {
+                    TransactionFrequencyValue = DefinedValueCache.Get( ddlFrequency.SelectedValue.AsInteger() ),
+                    StartDate = dtpStartDate.SelectedDate.Value,
+                    PersonId = transactionPersonId
+                };
+
+                financialScheduledTransaction = this.FinancialGatewayComponent.AddScheduledPayment( this.FinancialGateway, paymentSchedule, paymentInfo, out errorMessage );
+                if ( financialTransaction == null )
+                {
+                    nbProcessTransactionError.Text = errorMessage ?? "Unknown Error";
+                    nbProcessTransactionError.Visible = true;
+                    return;
+                }
+            }
+            else
+            {
+                financialTransaction = this.FinancialGatewayComponent.Charge( this.FinancialGateway, paymentInfo, out errorMessage );
+                if ( financialTransaction == null )
+                {
+                    nbProcessTransactionError.Text = errorMessage ?? "Unknown Error";
+                    nbProcessTransactionError.Visible = true;
+                    return;
+                }
+            }
+
+            if ( financialScheduledTransaction != null )
+            {
+                SaveScheduledTransaction( transactionPersonId, paymentInfo, paymentSchedule, financialScheduledTransaction );
+            }
+            else
+            {
                 SaveTransaction( transactionPersonId, paymentInfo, financialTransaction );
             }
+            
 
             ShowTransactionSummary();
         }
@@ -1816,6 +1905,18 @@ mission. We are so grateful for your commitment.</p>
         private bool GivingAsBusiness()
         {
             return tglIndividualOrBusiness.Checked;
+        }
+
+        /// <summary>
+        /// Determines whether a scheduled giving frequency was selected
+        /// </summary>
+        /// <returns>
+        ///   <c>true</c> if [is scheduled transaction]; otherwise, <c>false</c>.
+        /// </returns>
+        private bool IsScheduledTransaction()
+        {
+            int oneTimeFrequencyId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME.AsGuid() ) ?? 0;
+            return ddlFrequency.SelectedValue.AsInteger() != oneTimeFrequencyId;
         }
 
         /// <summary>
@@ -1843,7 +1944,18 @@ mission. We are so grateful for your commitment.</p>
 
             if ( givingAsBusiness )
             {
-                paymentInfo.LastName = tbBusinessName.Text;
+                if ( pnlBusinessContactAnonymous.Visible )
+                {
+                    paymentInfo.FirstName = tbBusinessContactFirstName.Text;
+                    paymentInfo.LastName = tbBusinessContactLastName.Text;
+                }
+                else
+                {
+                    paymentInfo.FirstName = tbFirstName.Text;
+                    paymentInfo.LastName = tbLastName.Text;
+                }
+
+                paymentInfo.BusinessName = tbBusinessName.Text;
             }
             else
             {
@@ -1892,13 +2004,15 @@ mission. We are so grateful for your commitment.</p>
             if ( !UsingPersonSavedAccount() )
             {
                 pnlSaveAccountPrompt.Visible = true;
+
+                // Show save account info based on if checkbox is checked
+                pnlSaveAccountEntry.Style[HtmlTextWriterStyle.Display] = cbSaveAccount.Checked ? "block" : "none";
             }
-            else
-            {
-                // If current person does not have a login, have them create a UserName and password
-                var targetPerson = GetTargetPerson( rockContext );
-                pnlCreateLogin.Visible = !new UserLoginService( rockContext ).GetByPersonId( targetPerson.Id ).Any();
-            }
+
+            // If target person does not have a login, have them create a UserName and password
+            var targetPerson = GetTargetPerson( rockContext );
+            var hasUserLogin = new UserLoginService( rockContext ).GetByPersonId( targetPerson.Id ).Any();
+            pnlCreateLogin.Visible = !hasUserLogin;
 
             NavigateToStep( EntryStep.ShowTransactionSummary );
         }
@@ -2017,6 +2131,37 @@ mission. We are so grateful for your commitment.</p>
         }
 
         /// <summary>
+        /// Saves the scheduled transaction.
+        /// </summary>
+        /// <param name="personId">The person identifier.</param>
+        /// <param name="paymentInfo">The payment information.</param>
+        /// <param name="schedule">The schedule.</param>
+        /// <param name="scheduledTransaction">The scheduled transaction.</param>
+        private void SaveScheduledTransaction( int personId, PaymentInfo paymentInfo, PaymentSchedule schedule, FinancialScheduledTransaction scheduledTransaction )
+        {
+            FinancialGateway financialGateway = this.FinancialGateway;
+            IHostedGatewayComponent gateway = this.FinancialGatewayComponent;
+            var rockContext = new RockContext();
+
+            // manually assign the Guid that we generated at the beginning of the transaction UI entry to help make duplicate transactions impossible
+            scheduledTransaction.Guid = hfTransactionGuid.Value.AsGuid();
+
+            scheduledTransaction.TransactionFrequencyValueId = schedule.TransactionFrequencyValue.Id;
+            scheduledTransaction.StartDate = schedule.StartDate;
+            scheduledTransaction.AuthorizedPersonAliasId = new PersonAliasService( rockContext ).GetPrimaryAliasId( personId ).Value;
+            scheduledTransaction.FinancialGatewayId = financialGateway.Id;
+
+            if ( scheduledTransaction.FinancialPaymentDetail == null )
+            {
+                scheduledTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
+            }
+
+            scheduledTransaction.FinancialPaymentDetail.SetFromPaymentInfo( paymentInfo, gateway as GatewayComponent, rockContext );
+
+            // TODO
+        }
+
+        /// <summary>
         /// Gets the transaction entity.
         /// </summary>
         /// <returns></returns>
@@ -2061,8 +2206,6 @@ mission. We are so grateful for your commitment.</p>
                 Rock.Transactions.RockQueue.TransactionQueue.Enqueue( sendPaymentReceiptsTxn );
             }
         }
-
-        #endregion
 
         /// <summary>
         /// Handles the Click event of the btnSaveAccount control.
@@ -2111,16 +2254,6 @@ mission. We are so grateful for your commitment.</p>
             nbSaveAccount.Text = "The account has been saved for future use";
             nbSaveAccount.NotificationBoxType = NotificationBoxType.Success;
             nbSaveAccount.Visible = true;
-        }
-
-        /// <summary>
-        /// Handles the SelectedIndexChanged event of the bgIndividualOrBusiness control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void bgIndividualOrBusiness_SelectedIndexChanged( object sender, EventArgs e )
-        {
-            
         }
 
         /// <summary>
@@ -2178,12 +2311,19 @@ mission. We are so grateful for your commitment.</p>
             }
         }
 
+        /// <summary>
+        /// Handles the CheckedChanged event of the tglIndividualOrBusiness control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void tglIndividualOrBusiness_CheckedChanged( object sender, EventArgs e )
         {
-            bool giveAsBusiness = GivingAsBusiness();
-            pnlPersonInformationAsIndividual.Visible = !giveAsBusiness;
-            pnlPersonInformationAsBusiness.Visible = giveAsBusiness;
+            bool givingAsBusiness = GivingAsBusiness();
+            pnlPersonInformationAsIndividual.Visible = !givingAsBusiness;
+            pnlPersonInformationAsBusiness.Visible = givingAsBusiness;
             UpdatePersonalInformationFromSelectedBusiness();
         }
     }
+
+    #endregion cleanup
 }

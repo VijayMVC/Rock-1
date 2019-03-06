@@ -51,6 +51,14 @@ namespace Rock.Financial
         public string LastName { get; set; }
 
         /// <summary>
+        /// Gets or sets the name of the business (if giving as a business)
+        /// </summary>
+        /// <value>
+        /// The name of the business.
+        /// </value>
+        public string BusinessName { get; set; }
+
+        /// <summary>
         /// Gets the full name.
         /// </summary>
         public string FullName
