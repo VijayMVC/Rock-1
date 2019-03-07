@@ -1097,13 +1097,7 @@ namespace Rock.Attribute
                         attribute.AddControl( attributeCol.Controls, item.AttributeValues[attribute.Key].Value, validationGroup, setValue, true );
                     }
                     else
-                    {
-                        if ( attribute.Key.ToString() == "Password" && item.AttributeValues[attribute.Key].Value != "" )
-                        {
-                            item.AttributeValues[attribute.Key].Value = "0000000000000000000";
-                        }
-
-
+                    {  
                         attribute.AddControl( fieldSet.Controls, item.AttributeValues[attribute.Key].Value, validationGroup, setValue, true );
                     }
                 }
