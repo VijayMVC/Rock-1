@@ -229,7 +229,7 @@ namespace Rock.TransNational.Pi
         /// <param name="tokenizerToken">The tokenizer token.</param>
         /// <param name="paymentInfo">The payment information.</param>
         /// <returns></returns>
-        private CreateCustomerResponse CreateCustomer( string gatewayUrl, string apiKey, string tokenizerToken, PaymentInfo paymentInfo )
+        private CustomerResponse CreateCustomer( string gatewayUrl, string apiKey, string tokenizerToken, PaymentInfo paymentInfo )
         {
             var restClient = new RestClient( gatewayUrl );
             RestRequest restRequest = new RestRequest( "api/customer", Method.POST );
@@ -265,8 +265,26 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            var createCustomerResponse = JsonConvert.DeserializeObject<CreateCustomerResponse>( response.Content );
+            var createCustomerResponse = JsonConvert.DeserializeObject<CustomerResponse>( response.Content );
             return createCustomerResponse;
+        }
+
+        /// <summary>
+        /// Gets the customer.
+        /// </summary>
+        /// <param name="gatewayUrl">The gateway URL.</param>
+        /// <param name="apiKey">The API key.</param>
+        /// <param name="customerId">The customer identifier.</param>
+        /// <returns></returns>
+        private CustomerResponse GetCustomer( string gatewayUrl, string apiKey, string customerId )
+        {
+            var restClient = new RestClient( gatewayUrl );
+            RestRequest restRequest = new RestRequest( $"api/customer/{customerId}", Method.GET );
+            restRequest.AddHeader( "Authorization", apiKey );
+
+            var response = restClient.Execute( restRequest );
+
+            return ParseResponse<CustomerResponse>( response );
         }
 
         #endregion Customers
@@ -426,20 +444,25 @@ namespace Rock.TransNational.Pi
         /// </summary>
         /// <param name="billingPlanParameters">The billing plan parameters.</param>
         /// <param name="scheduleTransactionFrequencyValueGuid">The schedule transaction frequency value unique identifier.</param>
-        private static void SetBillingPlanParameters( BillingPlanParameters billingPlanParameters, Guid scheduleTransactionFrequencyValueGuid )
+        private static void SetSubscriptionBillingPlanParameters( SubscriptionRequestParameters subscriptionRequestParameters, Guid scheduleTransactionFrequencyValueGuid )
         {
+            BillingPlanParameters billingPlanParameters = subscriptionRequestParameters as BillingPlanParameters;
             BillingFrequency? billingFrequency = null;
             int billingCycleInterval = 1;
             string billingDays = null;
+            int startDayOfMonth = subscriptionRequestParameters.NextBillDateUTC.Value.Day;
+            int twiceMonthlySecondDayOfMonth = subscriptionRequestParameters.NextBillDateUTC.Value.AddDays( 15 ).Day;
+
             if ( scheduleTransactionFrequencyValueGuid == Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_MONTHLY.AsGuid() )
             {
                 billingFrequency = BillingFrequency.monthly;
+                billingDays = $"{startDayOfMonth}";
             }
             else if ( scheduleTransactionFrequencyValueGuid == Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_TWICEMONTHLY.AsGuid() )
             {
                 // see https://sandbox.gotnpgateway.com/docs/api/#bill-once-month-on-the-1st-and-the-15th-until-canceled
                 billingFrequency = BillingFrequency.twice_monthly;
-                billingDays = "1,15";
+                billingDays = $"{startDayOfMonth},{twiceMonthlySecondDayOfMonth}";
             }
             else if ( scheduleTransactionFrequencyValueGuid == Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_WEEKLY.AsGuid() )
             {
@@ -607,7 +630,7 @@ namespace Rock.TransNational.Pi
         /// <param name="apiKey">The API key.</param>
         /// <param name="subscriptionId">The subscription identifier.</param>
         /// <returns></returns>
-        private SubscriptionGetResponse GetSubscription( string gatewayUrl, string apiKey, string subscriptionId )
+        private SubscriptionResponse GetSubscription( string gatewayUrl, string apiKey, string subscriptionId )
         {
             var restClient = new RestClient( gatewayUrl );
             RestRequest restRequest = new RestRequest( $"api/recurring/subscription/{subscriptionId}", Method.GET );
@@ -615,7 +638,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            return ParseResponse<SubscriptionGetResponse>( response );
+            return ParseResponse<SubscriptionResponse>( response );
         }
 
         #endregion Subscriptions
@@ -686,14 +709,25 @@ namespace Rock.TransNational.Pi
 
             var financialTransaction = new FinancialTransaction();
             financialTransaction.TransactionCode = response.Data.Id;
-            var creditCardResponse = response.Data.PaymentMethodResponse?.Card;
-            var achResponse = response.Data.PaymentMethodResponse?.ACH;
-            financialTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
-            var billingAddressResponse = response.Data.BillingAddress;
+            financialTransaction.FinancialPaymentDetail = PopulatePaymentInfo( paymentInfo, response.Data?.PaymentMethodResponse, response.Data?.BillingAddress );
+
+            return financialTransaction;
+        }
+
+        /// <summary>
+        /// Populates the FinancialPaymentDetail record for a FinancialTransaction or FinancialScheduledTransaction
+        /// </summary>
+        /// <param name="paymentInfo">The payment information.</param>
+        /// <param name="paymentMethodResponse">The payment method response.</param>
+        /// <param name="billingAddressResponse">The billing address response.</param>
+        /// <returns></returns>
+        private static FinancialPaymentDetail PopulatePaymentInfo( PaymentInfo paymentInfo, PaymentMethodResponse paymentMethodResponse, BillingAddress billingAddressResponse )
+        {
+            FinancialPaymentDetail financialPaymentDetail = new FinancialPaymentDetail();
             if ( billingAddressResponse != null )
             {
                 // since we are using a token for payment, it is possible that the Gateway has a different address associated with the payment method
-                financialTransaction.FinancialPaymentDetail.NameOnCardEncrypted = Encryption.EncryptString( $"{billingAddressResponse.FirstName} {billingAddressResponse.LastName}" );
+                financialPaymentDetail.NameOnCardEncrypted = Encryption.EncryptString( $"{billingAddressResponse.FirstName} {billingAddressResponse.LastName}" );
 
                 // if address wasn't collected when entering the transaction, set the address to the billing info returned from the gateway (if any)
                 if ( paymentInfo.Street1.IsNullOrWhiteSpace() )
@@ -710,15 +744,18 @@ namespace Rock.TransNational.Pi
                 }
             }
 
+            var creditCardResponse = paymentMethodResponse?.Card;
+            var achResponse = paymentMethodResponse?.ACH;
+
             if ( creditCardResponse != null )
             {
-                financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD.AsGuid() );
-                financialTransaction.FinancialPaymentDetail.AccountNumberMasked = creditCardResponse.MaskedCard;
+                financialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD.AsGuid() );
+                financialPaymentDetail.AccountNumberMasked = creditCardResponse.MaskedCard;
 
                 if ( creditCardResponse.ExpirationDate?.Length == 5 )
                 {
-                    financialTransaction.FinancialPaymentDetail.ExpirationMonthEncrypted = Encryption.EncryptString( creditCardResponse.ExpirationDate.Substring( 0, 2 ) );
-                    financialTransaction.FinancialPaymentDetail.ExpirationYearEncrypted = Encryption.EncryptString( creditCardResponse.ExpirationDate.Substring( 3, 2 ) );
+                    financialPaymentDetail.ExpirationMonthEncrypted = Encryption.EncryptString( creditCardResponse.ExpirationDate.Substring( 0, 2 ) );
+                    financialPaymentDetail.ExpirationYearEncrypted = Encryption.EncryptString( creditCardResponse.ExpirationDate.Substring( 3, 2 ) );
                 }
 
                 //// The gateway tells us what the CreditCardType is since it was selected using their hosted payment entry frame.
@@ -730,15 +767,15 @@ namespace Rock.TransNational.Pi
                     creditCardTypeValue = CreditCardPaymentInfo.GetCreditCardType( creditCardResponse.MaskedCard );
                 }
 
-                financialTransaction.FinancialPaymentDetail.CreditCardTypeValueId = creditCardTypeValue?.Id;
+                financialPaymentDetail.CreditCardTypeValueId = creditCardTypeValue?.Id;
             }
             else if ( achResponse != null )
             {
-                financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH.AsGuid() );
-                financialTransaction.FinancialPaymentDetail.AccountNumberMasked = achResponse.MaskedAccountNumber;
+                financialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_ACH.AsGuid() );
+                financialPaymentDetail.AccountNumberMasked = achResponse.MaskedAccountNumber;
             }
 
-            return financialTransaction;
+            return financialPaymentDetail;
         }
 
         /// <summary>
@@ -811,12 +848,12 @@ namespace Rock.TransNational.Pi
                 Customer = new SubscriptionCustomer { Id = customerId },
                 PlanId = null,
                 Description = $"Subscription for PersonId: {schedule.PersonId }",
-                NextBillDate = schedule.StartDate,
+                NextBillDateUTC = schedule.StartDate.ToUniversalTime(),
                 Duration = 0,
                 Amount = paymentInfo.Amount
             };
 
-            SetBillingPlanParameters( subscriptionParameters, schedule.TransactionFrequencyValue.Guid );
+            SetSubscriptionBillingPlanParameters( subscriptionParameters, schedule.TransactionFrequencyValue.Guid );
 
             var subscriptionResult = this.CreateSubscription( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), subscriptionParameters );
             var subscriptionId = subscriptionResult.Data?.Id;
@@ -827,13 +864,35 @@ namespace Rock.TransNational.Pi
                 return null;
             }
 
+            // set the paymentInfo.TransactionCode to the subscriptionId so that we know what CreateSubsciption created.
+            // this might be handy in case we have an exception and need to know what the subscriptionId is
+            referencedPaymentInfo.TransactionCode = subscriptionId;
+
             var scheduledTransaction = new FinancialScheduledTransaction();
             scheduledTransaction.TransactionCode = subscriptionId;
             scheduledTransaction.GatewayScheduleId = subscriptionId;
             scheduledTransaction.FinancialGatewayId = financialGateway.Id;
-            scheduledTransaction.FinancialGateway = financialGateway;
 
-            GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
+            CustomerResponse customerInfo;
+            try
+            {
+                customerInfo = this.GetCustomer( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), customerId );
+            }
+            catch ( Exception ex )
+            {
+                throw new Exception( $"Exception getting Customer Information for Scheduled Payment. {errorMessage}", ex );
+            }
+
+            scheduledTransaction.FinancialPaymentDetail = PopulatePaymentInfo( paymentInfo, customerInfo?.Data?.PaymentMethod, customerInfo?.Data?.BillingAddress );
+            try
+            {
+                GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
+            }
+            catch ( Exception ex )
+            {
+                throw new Exception( $"Exception getting Scheduled Payment Status. {errorMessage}", ex );
+            }
+
             return scheduledTransaction;
         }
 
@@ -850,12 +909,12 @@ namespace Rock.TransNational.Pi
 
             SubscriptionRequestParameters subscriptionParameters = new SubscriptionRequestParameters
             {
-                NextBillDate = scheduledTransaction.StartDate,
+                NextBillDateUTC = scheduledTransaction.StartDate.ToUniversalTime(),
                 Duration = 0,
                 Amount = paymentInfo.Amount
             };
 
-            SetBillingPlanParameters( subscriptionParameters, scheduledTransaction.TransactionFrequencyValue.Guid );
+            SetSubscriptionBillingPlanParameters( subscriptionParameters, scheduledTransaction.TransactionFrequencyValue.Guid );
 
             FinancialGateway financialGateway = scheduledTransaction.FinancialGateway;
 
@@ -933,11 +992,12 @@ namespace Rock.TransNational.Pi
             var subscriptionResult = this.GetSubscription( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), subscriptionId );
             if ( subscriptionResult.IsSuccessStatus() )
             {
-                var subscriptionInfo = subscriptionResult.Data?.FirstOrDefault();
+                var subscriptionInfo = subscriptionResult.Data;
                 if ( subscriptionInfo != null )
                 {
-                    scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDate;
+                    scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDateUTC.Value.ToLocalTime();
                 }
+
                 errorMessage = string.Empty;
                 return true;
             }

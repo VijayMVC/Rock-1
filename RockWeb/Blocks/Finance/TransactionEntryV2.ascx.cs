@@ -1119,7 +1119,7 @@ mission. We are so grateful for your commitment.</p>
                 else
                 {
                     nbConfigurationNotification.Dismissable = true;
-                    nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Default;
+                    nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Danger;
                     nbScheduledTransactionMessage.Text = string.Format( "An error occurred while deleting your scheduled {0}", GetAttributeValue( AttributeKey.GiftTerm ).ToLower() );
                     nbConfigurationNotification.Details = errorMessage;
                     nbScheduledTransactionMessage.Visible = true;
@@ -1832,7 +1832,7 @@ mission. We are so grateful for your commitment.</p>
             }
 
             UpdatePersonFromInputInformation( targetPerson );
-            
+
             if ( givingAsBusiness )
             {
                 int? businessId = cblSelectBusiness.SelectedValue.AsInteger();
@@ -1852,47 +1852,74 @@ mission. We are so grateful for your commitment.</p>
 
             nbProcessTransactionError.Visible = false;
 
-            FinancialTransaction financialTransaction = null;
-            FinancialScheduledTransaction financialScheduledTransaction = null;
-            PaymentSchedule paymentSchedule = null;
-
             if ( IsScheduledTransaction() )
             {
-                paymentSchedule = new PaymentSchedule
-                {
-                    TransactionFrequencyValue = DefinedValueCache.Get( ddlFrequency.SelectedValue.AsInteger() ),
-                    StartDate = dtpStartDate.SelectedDate.Value,
-                    PersonId = transactionPersonId
-                };
 
-                financialScheduledTransaction = this.FinancialGatewayComponent.AddScheduledPayment( this.FinancialGateway, paymentSchedule, paymentInfo, out errorMessage );
-                if ( financialTransaction == null )
+                string gatewayScheduleId = null;
+                try
                 {
-                    nbProcessTransactionError.Text = errorMessage ?? "Unknown Error";
-                    nbProcessTransactionError.Visible = true;
-                    return;
+                    PaymentSchedule paymentSchedule = new PaymentSchedule
+                    {
+                        TransactionFrequencyValue = DefinedValueCache.Get( ddlFrequency.SelectedValue.AsInteger() ),
+                        StartDate = dtpStartDate.SelectedDate.Value,
+                        PersonId = transactionPersonId
+                    };
+
+                    var financialScheduledTransaction = this.FinancialGatewayComponent.AddScheduledPayment( this.FinancialGateway, paymentSchedule, paymentInfo, out errorMessage );
+                    if ( financialScheduledTransaction == null )
+                    {
+                        if ( errorMessage.IsNullOrWhiteSpace() )
+                        {
+                            errorMessage = "Unknown Error";
+                        }
+
+                        nbProcessTransactionError.Text = errorMessage;
+                        nbProcessTransactionError.Visible = true;
+                        return;
+                    }
+
+                    gatewayScheduleId = financialScheduledTransaction.GatewayScheduleId;
+
+                    SaveScheduledTransaction( transactionPersonId, paymentInfo, paymentSchedule, financialScheduledTransaction );
+                }
+                catch ( Exception ex )
+                {
+                    if ( gatewayScheduleId.IsNotNullOrWhiteSpace() )
+                    {
+                        // if we didn't get the gatewayScheduleId from AddScheduledPayment, see if the gateway paymentInfo.TransactionCode before the exception occurred
+                        gatewayScheduleId = paymentInfo.TransactionCode;
+                    }
+
+                    throw new Exception( string.Format( "Error occurred when saving financial scheduled transaction for gateway scheduled payment with a gatewayScheduleId of {0} and FinancialScheduledTransaction with Guid of {1}.", gatewayScheduleId, transactionGuid ), ex );
                 }
             }
             else
             {
-                financialTransaction = this.FinancialGatewayComponent.Charge( this.FinancialGateway, paymentInfo, out errorMessage );
-                if ( financialTransaction == null )
+                string transactionCode = null;
+                try
                 {
-                    nbProcessTransactionError.Text = errorMessage ?? "Unknown Error";
-                    nbProcessTransactionError.Visible = true;
-                    return;
+                    FinancialTransaction financialTransaction = this.FinancialGatewayComponent.Charge( this.FinancialGateway, paymentInfo, out errorMessage );
+                    if ( financialTransaction == null )
+                    {
+                        if ( errorMessage.IsNullOrWhiteSpace() )
+                        {
+                            errorMessage = "Unknown Error";
+                        }
+
+                        nbProcessTransactionError.Text = errorMessage;
+                        nbProcessTransactionError.Visible = true;
+                        return;
+                    }
+
+                    transactionCode = financialTransaction.TransactionCode;
+
+                    SaveTransaction( transactionPersonId, paymentInfo, financialTransaction );
+                }
+                catch ( Exception ex )
+                {
+                    throw new Exception( string.Format( "Error occurred when saving financial transaction for gateway payment with a transactionCode of {0} and FinancialTransaction with Guid of {1}.", transactionCode, transactionGuid ), ex );
                 }
             }
-
-            if ( financialScheduledTransaction != null )
-            {
-                SaveScheduledTransaction( transactionPersonId, paymentInfo, paymentSchedule, financialScheduledTransaction );
-            }
-            else
-            {
-                SaveTransaction( transactionPersonId, paymentInfo, financialTransaction );
-            }
-            
 
             ShowTransactionSummary();
         }
@@ -1979,6 +2006,7 @@ mission. We are so grateful for your commitment.</p>
             var finishLavaTemplate = this.GetAttributeValue( AttributeKey.FinishLavaTemplate );
 
             // the transactionGuid is either for a FinancialTransaction or a FinancialScheduledTransaction
+            int? financialPaymentDetailId;
             FinancialPaymentDetail financialPaymentDetail;
             FinancialTransaction financialTransaction = new FinancialTransactionService( rockContext ).Get( transactionGuid );
             if ( financialTransaction != null )
@@ -1986,6 +2014,7 @@ mission. We are so grateful for your commitment.</p>
                 mergeFields.Add( "Transaction", financialTransaction );
                 mergeFields.Add( "Person", financialTransaction.AuthorizedPersonAlias.Person );
                 financialPaymentDetail = financialTransaction.FinancialPaymentDetail;
+                financialPaymentDetailId = financialTransaction.FinancialGatewayId;
             }
             else
             {
@@ -1993,10 +2022,20 @@ mission. We are so grateful for your commitment.</p>
                 mergeFields.Add( "Transaction", financialScheduledTransaction );
                 mergeFields.Add( "Person", financialScheduledTransaction.AuthorizedPersonAlias.Person );
                 financialPaymentDetail = financialScheduledTransaction.FinancialPaymentDetail;
+                financialPaymentDetailId = financialScheduledTransaction.FinancialGatewayId;
             }
 
-            mergeFields.Add( "PaymentDetail", financialPaymentDetail );
-            mergeFields.Add( "BillingLocation", financialPaymentDetail.BillingLocation );
+            if ( financialPaymentDetail  != null || financialPaymentDetailId.HasValue)
+            {
+                financialPaymentDetail = financialPaymentDetail ?? new FinancialPaymentDetailService( rockContext ).GetNoTracking( financialPaymentDetailId.Value );
+                mergeFields.Add( "PaymentDetail", financialPaymentDetail );
+
+                if ( financialPaymentDetail.BillingLocation != null || financialPaymentDetail.BillingLocationId.HasValue )
+                {
+                    var billingLocation = financialPaymentDetail.BillingLocation ?? new LocationService( rockContext ).GetNoTracking( financialPaymentDetail.BillingLocationId.Value );
+                    mergeFields.Add( "BillingLocation", billingLocation );
+                }
+            }
 
             lTransactionSummaryHTML.Text = finishLavaTemplate.ResolveMergeFields( mergeFields );
 
@@ -2119,7 +2158,7 @@ mission. We are so grateful for your commitment.</p>
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="transactionDetails">The transaction details.</param>
-        private void PopulateTransactionDetails<T>( ICollection<T> transactionDetails ) where T: ITransactionDetail, new()
+        private void PopulateTransactionDetails<T>( ICollection<T> transactionDetails ) where T : ITransactionDetail, new()
         {
             var transactionEntity = this.GetTransactionEntity();
             var selectedAccountAmounts = caapPromptForAccountAmounts.AccountAmounts;

@@ -54,9 +54,9 @@ namespace Rock.TransNational.Pi
     }
 
     /// <summary>
-    /// from https://sandbox.gotnpgateway.com/docs/api/#create-a-new-customer
+    /// from https://sandbox.gotnpgateway.com/docs/api/#create-a-new-customer and https://sandbox.gotnpgateway.com/docs/api/#get-a-specific-customer
     /// </summary>
-    public class CreateCustomerResponse : BaseResponseData
+    public class CustomerResponse : BaseResponseData
     {
         /// <summary>
         /// Gets or sets the data.
@@ -65,13 +65,13 @@ namespace Rock.TransNational.Pi
         /// The data.
         /// </value>
         [JsonProperty( "data" )]
-        public CreateCustomerResponseData Data { get; set; }
+        public CustomerResponseData Data { get; set; }
     }
 
     /// <summary>
-    /// from https://sandbox.gotnpgateway.com/docs/api/#create-a-new-customer
+    /// from https://sandbox.gotnpgateway.com/docs/api/#create-a-new-customer and https://sandbox.gotnpgateway.com/docs/api/#get-a-specific-customer
     /// </summary>
-    public class CreateCustomerResponseData
+    public class CustomerResponseData
     {
         /// <summary>
         /// Gets or sets the identifier.
@@ -673,7 +673,8 @@ namespace Rock.TransNational.Pi
 
         /// <summary>
         /// If BillingFrequency = <seealso cref="BillingFrequency.twice_monthly "/>, this is the days of the month to bill (for example "1,15" for the 1st and 15th).
-        /// If BillingFrequency = <seealso cref="BillingFrequency.daily "/>
+        /// If BillingFrequency = <seealso cref="BillingFrequency.monthly "/>, this is the day of the month to bill on (for example "10" for the 10th of every month).
+        /// If BillingFrequency = <seealso cref="BillingFrequency.daily "/>, this is the X number of days  ( 7 for weekly. Note, for every 2 weeks, also 7, but 2 for BillingCycleInterval )
         /// </summary>
         /// <value>
         /// The billing days.
@@ -1490,14 +1491,14 @@ namespace Rock.TransNational.Pi
         public SubscriptionCustomer Customer { get; set; }
 
         /// <summary>
-        /// Gets or sets the next bill date.
+        /// Gets or sets the next bill date in UTC time
         /// </summary>
         /// <value>
         /// The next bill date.
         /// </value>
         [JsonProperty( "next_bill_date" )]
         [JsonConverter( typeof( RockJsonIsoDateConverter ) )]
-        public DateTime? NextBillDate { get; set; }
+        public DateTime? NextBillDateUTC { get; set; }
     }
 
     /// <summary>
@@ -1528,25 +1529,6 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "data" )]
         public SubscriptionData Data { get; set; }
-    }
-
-    /// <summary>
-    /// https://sandbox.gotnpgateway.com/docs/api/#get-a-subscription
-    /// NOTE: Documentation says that <see cref="Data"/> is a single object and not an array
-    /// </summary>
-    public class SubscriptionGetResponse : BaseResponseData
-    {
-        /// <summary>
-        /// Gets or sets the data.
-        /// </summary>
-        /// <value>
-        /// The data.
-        /// </value>
-        [JsonProperty( "data" )]
-        public SubscriptionData[] Data { get; set; }
-
-        [JsonProperty( "total_count" )]
-        public int TotalCount { get; set; }
     }
 
     /// <summary>
@@ -1649,14 +1631,14 @@ namespace Rock.TransNational.Pi
         public int? Duration { get; set; }
 
         /// <summary>
-        /// Gets or sets the next bill date.
+        /// Gets or sets the next bill date in UTC time
         /// </summary>
         /// <value>
         /// The next bill date.
         /// </value>
         [JsonProperty( "next_bill_date" )]
         [JsonConverter( typeof( RockJsonIsoDateConverter ) )]
-        public DateTime? NextBillDate { get; set; }
+        public DateTime? NextBillDateUTC { get; set; }
 
         /// <summary>
         /// Gets or sets the created date time.
@@ -2118,7 +2100,7 @@ namespace Rock.TransNational.Pi
         /// The response body.
         /// </value>
         [JsonProperty( "response_body" )]
-        public virtual PaymentMethodResponse PaymentMethodResponse { get; set; }
+        public PaymentMethodResponse PaymentMethodResponse { get; set; }
 
         /// <summary>
         /// Gets or sets the status.
