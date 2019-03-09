@@ -995,7 +995,7 @@ namespace Rock.TransNational.Pi
                 var subscriptionInfo = subscriptionResult.Data;
                 if ( subscriptionInfo != null )
                 {
-                    scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDateUTC.Value.ToLocalTime();
+                    scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDateUTC.Value.ToLocalTime().Date;
                 }
 
                 errorMessage = string.Empty;

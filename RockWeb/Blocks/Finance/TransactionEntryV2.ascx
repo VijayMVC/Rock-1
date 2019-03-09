@@ -280,9 +280,9 @@
 
                             <h2>
                                 <asp:Literal ID="lSaveAccountTitle" runat="server" /></h2>
-                            <Rock:RockCheckBox ID="cbSaveAccount" runat="server" Text="Save account information for future gifts" CssClass="toggle-input" />
+                            <Rock:RockCheckBox ID="cbSaveAccount" runat="server" Text="Save account information for future gifts" CssClass="js-save-account" />
 
-                            <asp:Panel ID="pnlSaveAccountEntry" runat="server" class="toggle-content">
+                            <asp:Panel ID="pnlSaveAccountEntry" runat="server" class="js-save-account-entry">
                                 <Rock:RockTextBox ID="tbSaveAccount" runat="server" Label="Name for this account" CssClass="input-large" Required="true" ValidationGroup="vgSaveAccount" />
 
                                 <asp:Panel ID="pnlCreateLogin" runat="server" Visible="false">
@@ -297,9 +297,9 @@
                                         </div>
                                     </div>
 
-                                    <Rock:RockTextBox ID="tbUserName" runat="server" Label="Username" CssClass="input-medium" />
-                                    <Rock:RockTextBox ID="tbPassword" runat="server" Label="Password" CssClass="input-medium" TextMode="Password" />
-                                    <Rock:RockTextBox ID="tbPasswordConfirm" runat="server" Label="Confirm Password" CssClass="input-medium" TextMode="Password" />
+                                    <Rock:RockTextBox ID="tbUserName" runat="server" Label="Username" CssClass="input-medium" Required="true" ValidationGroup="vgSaveAccount" />
+                                    <Rock:RockTextBox ID="tbPassword" runat="server" Label="Password" CssClass="input-medium" Required="true" TextMode="Password" ValidationGroup="vgSaveAccount" />
+                                    <Rock:RockTextBox ID="tbPasswordConfirm" runat="server" Label="Confirm Password" CssClass="input-medium" TextMode="Password" Required="true" ValidationGroup="vgSaveAccount" />
 
                                 </asp:Panel>
 
@@ -350,6 +350,26 @@
                 }
             };
 
+            function showSaveAccount(animate) {
+                var show = $('.js-save-account').is(':checked');
+                if (show) {
+                    if (animate) {
+                        $('.js-save-account-entry').slideDown();
+                    }
+                    else {
+                        $('.js-save-account-entry').show();
+                    }
+                }
+                else {
+                    if (animate) {
+                        $('.js-save-account-entry').slideUp();
+                    }
+                    else {
+                        $('.js-save-account-entry').hide();
+                    }
+                }
+            }
+
             Sys.Application.add_load(function () {
                 var $scheduleDetailsContainers = $('.js-scheduled-transaction');
 
@@ -360,7 +380,6 @@
                 $('.js-submit-hostedpaymentinfo').click(function () {
                     <%=HostPaymentInfoSubmitScript%>
                 });
-
 
                 var $toggleScheduledDetails = $('.js-toggle-scheduled-details');
                 $toggleScheduledDetails.click(function () {
@@ -375,10 +394,18 @@
                     setScheduledDetailsVisibility($scheduledDetailsContainer, true);
                 });
 
-                // Hide or show a div based on selection of checkbox
-                $('input:checkbox.toggle-input').unbind('click').on('click', function () {
-                    $(this).parents('.checkbox').next('.toggle-content').slideToggle();
-                });
+
+                if ($('.js-save-account').length > 0) {
+
+                    debugger
+                    showSaveAccount();
+
+                    // Hide or show a div based on selection of checkbox
+                    $('.js-save-account').on('click', function () {
+                        showSaveAccount();
+                    });
+                }
+
             });
         </script>
 

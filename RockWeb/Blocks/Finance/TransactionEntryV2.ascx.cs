@@ -23,6 +23,7 @@ using System.Web.UI.WebControls;
 
 using Rock;
 using Rock.Attribute;
+using Rock.Communication;
 using Rock.Data;
 using Rock.Financial;
 using Rock.Lava;
@@ -2025,7 +2026,7 @@ mission. We are so grateful for your commitment.</p>
                 financialPaymentDetailId = financialScheduledTransaction.FinancialGatewayId;
             }
 
-            if ( financialPaymentDetail  != null || financialPaymentDetailId.HasValue)
+            if ( financialPaymentDetail != null || financialPaymentDetailId.HasValue )
             {
                 financialPaymentDetail = financialPaymentDetail ?? new FinancialPaymentDetailService( rockContext ).GetNoTracking( financialPaymentDetailId.Value );
                 mergeFields.Add( "PaymentDetail", financialPaymentDetail );
@@ -2122,7 +2123,6 @@ mission. We are so grateful for your commitment.</p>
             History.EvaluateChange( batchChanges, "Control Amount", batch.ControlAmount.FormatAsCurrency(), newControlAmount.FormatAsCurrency() );
             batch.ControlAmount = newControlAmount;
 
-            transaction.BatchId = batch.Id;
             transaction.LoadAttributes( rockContext );
 
             var allowedTransactionAttributes = GetAttributeValue( AttributeKey.AllowedTransactionAttributesFromURL ).Split( ',' ).AsGuidList().Select( x => AttributeCache.Get( x ).Key );
@@ -2135,10 +2135,20 @@ mission. We are so grateful for your commitment.</p>
                 }
             }
 
-            // TODO, Performance?!?
-            batch.Transactions.Add( transaction );
+            var financialTransactionService = new FinancialTransactionService( rockContext );
 
+            // If this is a new Batch, SaveChanges so that we can get the Batch.Id
+            if ( batch.Id == 0 )
+            {
+                rockContext.SaveChanges();
+            }
+
+            transaction.BatchId = batch.Id;
+
+            // use the financialTransactionService to add the transaction instead of batch.Transactions to avoid lazy-loading the transactions already associated with the batch
+            financialTransactionService.Add( transaction );
             rockContext.SaveChanges();
+
             transaction.SaveAttributeValues();
 
             HistoryService.SaveChanges(
@@ -2275,17 +2285,54 @@ mission. We are so grateful for your commitment.</p>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void btnSaveAccount_Click( object sender, EventArgs e )
         {
+            var rockContext = new RockContext();
+
+            var targetPerson = GetTargetPerson( rockContext );
+
+            if ( pnlCreateLogin.Visible )
+            {
+                string errorTitle = null;
+                string errorMessage = null;
+                if ( !UserLoginService.IsValidNewUserLogin( tbUserName.Text, tbPassword.Text, tbPasswordConfirm.Text, out errorTitle, out errorMessage ) )
+                {
+                    nbSaveAccount.Title = errorTitle;
+                    nbSaveAccount.Text = errorMessage;
+                    nbSaveAccount.NotificationBoxType = NotificationBoxType.Validation;
+                    nbSaveAccount.Visible = true;
+                    return;
+                }
+
+                var userLogin = UserLoginService.Create(
+                    rockContext,
+                    targetPerson,
+                    Rock.Model.AuthenticationServiceType.Internal,
+                    EntityTypeCache.Get( Rock.SystemGuid.EntityType.AUTHENTICATION_DATABASE.AsGuid() ).Id,
+                    tbUserName.Text,
+                    tbPassword.Text,
+                    false );
+
+                var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson );
+                mergeFields.Add( "ConfirmAccountUrl", RootPath + "ConfirmAccount" );
+                mergeFields.Add( "Person", targetPerson );
+                mergeFields.Add( "User", userLogin );
+
+                var emailMessage = new RockEmailMessage( GetAttributeValue( AttributeKey.ConfirmAccountEmailTemplate ).AsGuid() );
+                emailMessage.AddRecipient( new RecipientData( targetPerson.Email, mergeFields ) );
+                emailMessage.AppRoot = ResolveRockUrl( "~/" );
+                emailMessage.ThemeRoot = ResolveRockUrl( "~~/" );
+                emailMessage.CreateCommunicationRecord = false;
+                emailMessage.Send();
+            }
+
+
             var financialGatewayComponent = this.FinancialGatewayComponent;
             var financialGateway = this.FinancialGateway;
 
-            var rockContext = new RockContext();
             var financialTransaction = new FinancialTransactionService( rockContext ).Get( hfTransactionGuid.Value.AsGuid() );
 
             var gatewayPersonIdentifier = Rock.Security.Encryption.DecryptString( this.CustomerTokenEncrypted );
 
             var savedAccount = new FinancialPersonSavedAccount();
-            var targetPerson = GetTargetPerson( rockContext );
-
             var paymentDetail = financialTransaction.FinancialPaymentDetail;
 
             savedAccount.PersonAliasId = targetPerson.PrimaryAliasId;
