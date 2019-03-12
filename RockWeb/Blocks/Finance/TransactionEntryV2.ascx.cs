@@ -360,7 +360,7 @@ namespace RockWeb.Blocks.Finance
 
     [CodeEditorField(
         "Invalid Account Message",
-        Key = AttributeKey.InvalidAccountMessage,
+        Key = AttributeKey.InvalidAccountInURLMessage,
         Description = "Display this text (HTML) as an error alert if an invalid 'account' or 'GL account' is passed through the URL. Leave blank to just ignore the invalid accounts and not show a message.",
         EditorMode = CodeEditorMode.Html,
         EditorTheme = CodeEditorTheme.Rock,
@@ -512,7 +512,7 @@ mission. We are so grateful for your commitment.</p>
 
             public const string OnlyPublicAccountsInURL = "OnlyPublicAccountsInURL";
 
-            public const string InvalidAccountMessage = "InvalidAccountMessage";
+            public const string InvalidAccountInURLMessage = "InvalidAccountInURLMessage";
 
             public const string ReceiptEmail = "ReceiptEmail";
 
@@ -651,9 +651,7 @@ mission. We are so grateful for your commitment.</p>
         /// </summary>
         protected class ParameterAccountOption
         {
-            public int? AccountId { get; set; }
-
-            public string AccountGLCode { get; set; }
+            public int AccountId { get; set; }
 
             public decimal? Amount { get; set; }
 
@@ -734,12 +732,6 @@ mission. We are so grateful for your commitment.</p>
                 ( _hostedPaymentInfoControl as IHostedGatewayPaymentControlTokenEvent ).TokenReceived += _hostedPaymentInfoControl_TokenReceived;
             }
 
-            var rockContext = new RockContext();
-            var selectableAccountIds = new FinancialAccountService( rockContext ).GetByGuids( this.GetAttributeValues( AttributeKey.AccountsToDisplay ).AsGuidList() ).Select( a => a.Id ).ToArray();
-
-            caapPromptForAccountAmounts.SelectableAccountIds = selectableAccountIds;
-            caapPromptForAccountAmounts.AskForCampusIfKnown = this.GetAttributeValue( AttributeKey.AskForCampusIfKnown ).AsBoolean();
-
             tglIndividualOrBusiness.Visible = this.GetAttributeValue( AttributeKey.EnableBusinessGiving ).AsBoolean();
 
             cbGiveAnonymouslyIndividual.Visible = this.GetAttributeValue( AttributeKey.EnableAnonymousGiving ).AsBoolean();
@@ -801,15 +793,61 @@ mission. We are so grateful for your commitment.</p>
             }
 
             var allowAccountsInUrl = this.GetAttributeValue( AttributeKey.AllowAccountOptionsInURL ).AsBoolean();
-            var onlyPublicAccountsInURL = this.GetAttributeValue( AttributeKey.OnlyPublicAccountsInURL ).AsBoolean();
+            var rockContext = new RockContext();
+            List<int> selectableAccountIds = new FinancialAccountService( rockContext ).GetByGuids( this.GetAttributeValues( AttributeKey.AccountsToDisplay ).AsGuidList() ).Select( a => a.Id ).ToList();
+            CampusAccountAmountPicker.AccountIdAmount[] accountAmounts = null;
+
+            bool enableMultiAccount = this.GetAttributeValue( AttributeKey.EnableMultiAccount ).AsBoolean();
+            if ( enableMultiAccount )
+            {
+                caapPromptForAccountAmounts.AmountEntryMode = CampusAccountAmountPicker.AccountAmountEntryMode.MultipleAccounts;
+            }
+            else
+            {
+                caapPromptForAccountAmounts.AmountEntryMode = CampusAccountAmountPicker.AccountAmountEntryMode.SingleAccount;
+            }
+
+            caapPromptForAccountAmounts.AskForCampusIfKnown = this.GetAttributeValue( AttributeKey.AskForCampusIfKnown ).AsBoolean();
 
             if ( allowAccountsInUrl )
             {
                 List<ParameterAccountOption> parameterAccountOptions = ParseAccountUrlOptions();
                 if ( parameterAccountOptions.Any() )
                 {
-                    // TODO
+                    selectableAccountIds = parameterAccountOptions.Select( a => a.AccountId ).ToList();
+                    string invalidAccountInURLMessage = this.GetAttributeValue( AttributeKey.InvalidAccountInURLMessage );
+                    if ( invalidAccountInURLMessage.IsNotNullOrWhiteSpace() )
+                    {
+                        var validAccountUrlIdsQuery = new FinancialAccountService( rockContext ).GetByIds( selectableAccountIds )
+                            .Where( a =>
+                                 a.IsActive &&
+                                 ( a.StartDate == null || a.StartDate <= RockDateTime.Today ) &&
+                                 ( a.EndDate == null || a.EndDate >= RockDateTime.Today ) );
+
+                        if ( this.GetAttributeValue( AttributeKey.OnlyPublicAccountsInURL ).AsBooleanOrNull() ?? true )
+                        {
+                            validAccountUrlIdsQuery = validAccountUrlIdsQuery.Where( a => a.IsPublic == true );
+                        }
+
+                        var validAccountIds = validAccountUrlIdsQuery.Select( a => a.Id ).ToList();
+
+                        if ( selectableAccountIds.Where( a => !validAccountIds.Contains( a ) ).Any() )
+                        {
+                            nbConfigurationNotification.Text = invalidAccountInURLMessage;
+                            nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Validation;
+                            nbConfigurationNotification.Visible = true;
+                        }
+                    }
+
+                    var parameterAccountAmounts = parameterAccountOptions.Select( a => new CampusAccountAmountPicker.AccountIdAmount( a.AccountId, a.Amount ) { ReadOnly = !a.Enabled } );
+                    accountAmounts = parameterAccountAmounts.ToArray();
                 }
+            }
+
+            caapPromptForAccountAmounts.SelectableAccountIds = selectableAccountIds.ToArray();
+            if ( accountAmounts != null )
+            {
+                caapPromptForAccountAmounts.AccountAmounts = accountAmounts;
             }
 
             // if Gateways are configured, show a warning if no Accounts are configured (we don't want to show an Accounts warning if they haven't configured a gateway yet)
@@ -824,53 +862,33 @@ mission. We are so grateful for your commitment.</p>
 
             Dictionary<string, object> introMessageMergeFields = null;
 
-            using ( var rockContext = new RockContext() )
+            IEntity transactionEntity = GetTransactionEntity();
+
+            introMessageMergeFields = LavaHelper.GetCommonMergeFields( this.RockPage );
+            if ( transactionEntity != null && introMessageTemplate.HasMergeFields() )
             {
-                IEntity transactionEntity = GetTransactionEntity();
-                if ( transactionEntity != null && introMessageTemplate.HasMergeFields() )
-                {
-                    // Resolve the text field merge fields
-                    introMessageMergeFields = LavaHelper.GetCommonMergeFields( this.RockPage );
+                introMessageMergeFields.Add( "TransactionEntity", transactionEntity );
+                var transactionEntityTypeId = transactionEntity.TypeId;
 
-                    introMessageMergeFields.Add( "TransactionEntity", transactionEntity );
-                    var transactionEntityTypeId = transactionEntity.TypeId;
+                // include any Transactions that are associated with the TransactionEntity for Lava
+                var transactionEntityTransactions = new FinancialTransactionService( rockContext ).Queryable()
+                    .Include( a => a.TransactionDetails )
+                    .Where( a => a.TransactionDetails.Any( d => d.EntityTypeId.HasValue && d.EntityTypeId == transactionEntityTypeId && d.EntityId == transactionEntity.Id ) )
+                    .ToList();
 
-                    // include any Transactions that are associated with the TransactionEntity for Lava
-                    var transactionEntityTransactions = new FinancialTransactionService( rockContext ).Queryable()
-                        .Include( a => a.TransactionDetails )
-                        .Where( a => a.TransactionDetails.Any( d => d.EntityTypeId.HasValue && d.EntityTypeId == transactionEntityTypeId && d.EntityId == transactionEntity.Id ) )
-                        .ToList();
+                var transactionEntityTransactionsTotal = transactionEntityTransactions.SelectMany( d => d.TransactionDetails )
+                    .Where( d => d.EntityTypeId.HasValue && d.EntityTypeId == transactionEntityTypeId && d.EntityId == transactionEntity.Id )
+                    .Sum( d => ( decimal? ) d.Amount );
 
-                    var transactionEntityTransactionsTotal = transactionEntityTransactions.SelectMany( d => d.TransactionDetails )
-                        .Where( d => d.EntityTypeId.HasValue && d.EntityTypeId == transactionEntityTypeId && d.EntityId == transactionEntity.Id )
-                        .Sum( d => ( decimal? ) d.Amount );
+                introMessageMergeFields.Add( "TransactionEntityTransactions", transactionEntityTransactions );
+                introMessageMergeFields.Add( "TransactionEntityTransactionsTotal", transactionEntityTransactionsTotal );
 
-                    introMessageMergeFields.Add( "TransactionEntityTransactions", transactionEntityTransactions );
-                    introMessageMergeFields.Add( "TransactionEntityTransactionsTotal", transactionEntityTransactionsTotal );
-
-                    introMessageMergeFields.Add( "AmountLimit", this.PageParameter( PageParameterKey.AmountLimit ).AsDecimalOrNull() );
-                }
-
-                if ( introMessageMergeFields != null )
-                {
-                    lIntroMessage.Text = introMessageTemplate.ResolveMergeFields( introMessageMergeFields );
-                }
-                else
-                {
-                    lIntroMessage.Text = introMessageTemplate;
-                }
+                introMessageMergeFields.Add( "AmountLimit", this.PageParameter( PageParameterKey.AmountLimit ).AsDecimalOrNull() );
             }
+
+            lIntroMessage.Text = introMessageTemplate.ResolveMergeFields( introMessageMergeFields );
 
             pnlTransactionEntry.Visible = true;
-            bool enableMultiAccount = this.GetAttributeValue( AttributeKey.EnableMultiAccount ).AsBoolean();
-            if ( enableMultiAccount )
-            {
-                caapPromptForAccountAmounts.AmountEntryMode = CampusAccountAmountPicker.AccountAmountEntryMode.MultipleAccounts;
-            }
-            else
-            {
-                caapPromptForAccountAmounts.AmountEntryMode = CampusAccountAmountPicker.AccountAmountEntryMode.SingleAccount;
-            }
 
             if ( this.GetAttributeValue( AttributeKey.ShowScheduledTransactions ).AsBoolean() )
             {
@@ -912,10 +930,12 @@ mission. We are so grateful for your commitment.</p>
         private List<ParameterAccountOption> ParseAccountUrlOptionsParameter( string accountOptionsParameterValue, bool parseAsAccountGLCode )
         {
             List<ParameterAccountOption> result = new List<ParameterAccountOption>();
-            if ( accountOptionsParameterValue.IsNotNullOrWhiteSpace() )
+            if ( accountOptionsParameterValue.IsNullOrWhiteSpace() )
             {
                 return result;
             }
+
+            var onlyPublicAccountsInURL = this.GetAttributeValue( AttributeKey.OnlyPublicAccountsInURL ).AsBoolean();
 
             var accountOptions = Server.UrlDecode( accountOptionsParameterValue ).Split( ',' );
 
@@ -932,7 +952,21 @@ mission. We are so grateful for your commitment.</p>
 
                     if ( parseAsAccountGLCode )
                     {
-                        parameterAccountOption.AccountGLCode = accountOptionParts[0];
+                        var accountGLCode = accountOptionParts[0];
+                        if ( accountGLCode.IsNotNullOrWhiteSpace() )
+                        {
+                            using ( var rockContext = new RockContext() )
+                            {
+                                parameterAccountOption.AccountId = new FinancialAccountService( rockContext )
+                                    .Queryable()
+                                    .Where( a => a.GlCode == accountGLCode &&
+                                    a.IsActive &&
+                                    ( onlyPublicAccountsInURL ? ( a.IsPublic ?? false ) : true ) &&
+                                    ( a.StartDate == null || a.StartDate <= RockDateTime.Today ) &&
+                                    ( a.EndDate == null || a.EndDate >= RockDateTime.Today ) )
+                                    .Select( a => a.Id ).FirstOrDefault();
+                            }
+                        }
                     }
                     else
                     {
@@ -1373,8 +1407,7 @@ mission. We are so grateful for your commitment.</p>
                         cblSelectBusiness.Items.Add( new ListItem( business.LastName, business.Id.ToString() ) );
                     }
 
-                    cblSelectBusiness.Items.Add( new ListItem( "New Business", "" ) );
-
+                    cblSelectBusiness.Items.Add( new ListItem( "New Business", string.Empty ) );
                     cblSelectBusiness.Visible = true;
                     cblSelectBusiness.SelectedIndex = 0;
                 }
@@ -1464,6 +1497,7 @@ mission. We are so grateful for your commitment.</p>
         private Person CreateBusiness( Person contactPerson )
         {
             var businessName = tbBusinessName.Text;
+
             // Try to find existing business for person that has the same name
             var personBusinesses = contactPerson.GetBusinesses()
                 .Where( b => b.LastName == businessName )
@@ -1569,7 +1603,6 @@ mission. We are so grateful for your commitment.</p>
 
             if ( updateFromBusinessSelection )
             {
-                //personOrBusiness.LastName = tbBusinessName.Text;
                 tbEmail = tbEmailBusiness;
                 pnbPhone = pnbPhoneBusiness;
                 numberTypeId = DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_WORK ) ).Id;
@@ -1578,9 +1611,6 @@ mission. We are so grateful for your commitment.</p>
             }
             else
             {
-                //personOrBusiness.FirstName = tbFirstName.Text;
-                //personOrBusiness.LastName = tbLastName.Text;
-
                 tbEmail = tbEmailIndividual;
                 pnbPhone = pnbPhoneIndividual;
                 numberTypeId = DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME ) ).Id;
@@ -1621,7 +1651,12 @@ mission. We are so grateful for your commitment.</p>
                     rockContext,
                     primaryFamily,
                     locationTypeGuid.ToString(),
-                    acAddress.Street1, acAddress.Street2, acAddress.City, acAddress.State, acAddress.PostalCode, acAddress.Country,
+                    acAddress.Street1,
+                    acAddress.Street2,
+                    acAddress.City,
+                    acAddress.State,
+                    acAddress.PostalCode,
+                    acAddress.Country,
                     true );
             }
         }
@@ -1954,7 +1989,6 @@ mission. We are so grateful for your commitment.</p>
 
                 // save the customer token in view state since we'll need it in case they create a saved account
                 this.CustomerTokenEncrypted = Rock.Security.Encryption.EncryptString( customerToken );
-
             }
 
             // determine or create the Person record that this transaction is for
@@ -1998,7 +2032,6 @@ mission. We are so grateful for your commitment.</p>
 
             if ( IsScheduledTransaction() )
             {
-
                 string gatewayScheduleId = null;
                 try
                 {
@@ -2179,6 +2212,8 @@ mission. We are so grateful for your commitment.</p>
 
             var mergeFields = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson, new CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
             var finishLavaTemplate = this.GetAttributeValue( AttributeKey.FinishLavaTemplate );
+            IEntity transactionEntity = GetTransactionEntity();
+            mergeFields.Add( "TransactionEntity", transactionEntity );
 
             // the transactionGuid is either for a FinancialTransaction or a FinancialScheduledTransaction
             int? financialPaymentDetailId;
@@ -2431,12 +2466,7 @@ mission. We are so grateful for your commitment.</p>
                     var entityId = this.PageParameter( this.GetAttributeValue( AttributeKey.EntityIdParam ) ).AsIntegerOrNull();
                     if ( entityId.HasValue )
                     {
-                        var dbContext = Reflection.GetDbContextForEntityType( transactionEntityType.GetEntityType() );
-                        IService serviceInstance = Reflection.GetServiceForEntityType( transactionEntityType.GetEntityType(), dbContext );
-                        if ( serviceInstance != null )
-                        {
-                            transactionEntity = serviceInstance.GetNoTracking( entityId.Value );
-                        }
+                        transactionEntity = Reflection.GetIEntityForEntityType( transactionEntityType.GetEntityType(), entityId.Value );
                     }
                 }
             }
@@ -2505,7 +2535,6 @@ mission. We are so grateful for your commitment.</p>
                 emailMessage.CreateCommunicationRecord = false;
                 emailMessage.Send();
             }
-
 
             var financialGatewayComponent = this.FinancialGatewayComponent;
             var financialGateway = this.FinancialGateway;
