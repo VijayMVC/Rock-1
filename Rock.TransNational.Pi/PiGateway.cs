@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Text;
 using System.Web.UI;
 using Newtonsoft.Json;
 using RestSharp;
@@ -324,6 +325,24 @@ namespace Rock.TransNational.Pi
             {
                 transaction.PaymentMethodRequest = new Rock.TransNational.Pi.PaymentMethodRequest( tokenizerToken );
             }
+
+            StringBuilder stringBuilderDescription = new StringBuilder();
+            if ( referencedPaymentInfo.Description.IsNotNullOrWhiteSpace() )
+            {
+                stringBuilderDescription.AppendLine( referencedPaymentInfo.Description );
+            }
+
+            if ( referencedPaymentInfo.Comment1.IsNotNullOrWhiteSpace() )
+            {
+                stringBuilderDescription.AppendLine( referencedPaymentInfo.Comment1 );
+            }
+
+            if ( referencedPaymentInfo.Comment2.IsNotNullOrWhiteSpace() )
+            {
+                stringBuilderDescription.AppendLine( referencedPaymentInfo.Comment2 );
+            }
+
+            transaction.Description = stringBuilderDescription.ToString().Truncate( 255 );
 
             transaction.BillingAddress = new BillingAddress
             {

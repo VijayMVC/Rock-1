@@ -65,18 +65,6 @@
                                 <asp:LinkButton ID="lbCancelAccounts" runat="server" Text="Cancel" CssClass="btn btn-link btn-xs" OnClick="lbCancelAccounts_Click" />
                             </div>
                         </asp:Panel>
-
-                        <dl>
-                            <asp:Repeater ID="rptrNotes" runat="server">
-                                <ItemTemplate>
-                                    <dt><%# Eval("Caption") %></dt>
-                                    <dd><%# Eval("Text") %>
-                                        <small>- <%# Eval("Person") %> on <%# Eval("Date") %> at <%# Eval("Time") %></small>
-                                    </dd>
-                                </ItemTemplate>
-                            </asp:Repeater>
-                        </dl>
-
                     </div>
                 </div>
 

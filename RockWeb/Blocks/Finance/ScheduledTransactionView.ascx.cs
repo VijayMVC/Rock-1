@@ -469,7 +469,6 @@ namespace RockWeb.Blocks.Finance
                         txnDetailService.Delete( txnDetail );
                     } );
 
-                    var changeSummary = new StringBuilder();
 
                     // Save Transaction Details
                     foreach ( var editorTxnDetail in TransactionDetailsState )
@@ -496,9 +495,6 @@ namespace RockWeb.Blocks.Finance
                             }
                         }
 
-                        changeSummary.AppendFormat( "{0}: {1}", editorTxnDetail.Account != null ? editorTxnDetail.Account.Name : "?", editorTxnDetail.Amount.FormatAsCurrency() );
-                        changeSummary.AppendLine();
-
                         txnDetail.AccountId = editorTxnDetail.AccountId;
                         txnDetail.Amount = editorTxnDetail.Amount;
                         txnDetail.Summary = editorTxnDetail.Summary;
@@ -507,20 +503,6 @@ namespace RockWeb.Blocks.Finance
                     if ( accountChanges )
                     {
                         // save changes
-                        rockContext.SaveChanges();
-
-                        // Add a note about the change
-                        var noteType = NoteTypeCache.Get( Rock.SystemGuid.NoteType.SCHEDULED_TRANSACTION_NOTE.AsGuid() );
-                        if ( noteType != null )
-                        {
-                            var noteService = new NoteService( rockContext );
-                            var note = new Note();
-                            note.NoteTypeId = noteType.Id;
-                            note.EntityId = txn.Id;
-                            note.Caption = "Updated Transaction";
-                            note.Text = changeSummary.ToString();
-                            noteService.Add( note );
-                        }
                         rockContext.SaveChanges();
                     }
 

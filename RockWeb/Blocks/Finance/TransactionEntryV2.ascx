@@ -97,9 +97,8 @@
 
                     <%-- Collect Transaction Info (step 1) --%>
                     <asp:Panel ID="pnlPromptForAmounts" runat="server">
-
-                        <h2>
-                            <asp:Literal ID="lIntroMessage" runat="server" /></h2>
+                        
+                        <asp:Literal ID="lIntroMessage" runat="server" />
 
                         <Rock:CampusAccountAmountPicker ID="caapPromptForAccountAmounts" runat="server" />
 
@@ -113,8 +112,13 @@
                             </div>
 
                         </asp:Panel>
+
+                        <Rock:RockTextBox ID="tbCommentEntry" runat="server" Required="true" Label="Comment" />
+
                         <Rock:NotificationBox ID="nbPromptForAmountsWarning" runat="server" NotificationBoxType="Validation" Visible="false" />
                         <Rock:BootstrapButton ID="btnGiveNow" runat="server" CssClass="btn btn-primary" Text="Give Now" OnClick="btnGiveNow_Click" />
+
+                        <a id="lHistoryBackButton" runat="server" class="btn btn-link">Previous</a>
                     </asp:Panel>
 
 
@@ -228,7 +232,7 @@
                             <asp:Panel ID="pnlLoggedInNameDisplay" runat="server">
                                 <asp:Literal ID="lCurrentPersonFullName" runat="server" />
                             </asp:Panel>
-                            <asp:Panel ID="pnlAnonymousNameEntry" runat="server">
+                            <asp:Panel ID="pnlNotLoggedInNameEntry" runat="server">
                                 <Rock:RockTextBox ID="tbFirstName" runat="server" Placeholder="First Name" />
                                 <Rock:RockTextBox ID="tbLastName" runat="server" Placeholder="Last Name" />
                             </asp:Panel>
@@ -236,6 +240,7 @@
                             <Rock:AddressControl ID="acAddressIndividual" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
                             <Rock:PhoneNumberBox ID="pnbPhoneIndividual" runat="server" Placeholder="Phone" />
                             <Rock:EmailBox ID="tbEmailIndividual" runat="server" Placeholder="Email" />
+                            <Rock:RockCheckBox ID="cbGiveAnonymouslyIndividual" runat="server" Text="Give Anonymously" />
                         </asp:Panel>
 
                         <asp:Panel ID="pnlPersonInformationAsBusiness" runat="server" Visible="false">
@@ -244,6 +249,7 @@
                             <Rock:AddressControl ID="acAddressBusiness" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
                             <Rock:PhoneNumberBox ID="pnbPhoneBusiness" runat="server" Placeholder="Business Phone" />
                             <Rock:EmailBox ID="tbEmailBusiness" runat="server" Placeholder="Business Email" />
+                            <Rock:RockCheckBox ID="cbGiveAnonymouslyBusiness" runat="server" Text="Give Anonymously" />
 
                             <%-- If anonymous and giving as a new business, prompt for Contact information --%>
                             <asp:Panel ID="pnlBusinessContactAnonymous" runat="server" Visible="false">
@@ -276,10 +282,10 @@
                         <asp:Literal ID="lTransactionSummaryHTML" runat="server" />
 
                         <%-- Make Giving Even Easier --%>
-                        <asp:Panel ID="pnlSaveAccountPrompt" runat="server" Visible="false">
+                        <asp:Panel ID="pnlSaveAccountPrompt" runat="server" Visible="false" CssClass="margin-t-xl">
 
-                            <h2>
-                                <asp:Literal ID="lSaveAccountTitle" runat="server" /></h2>
+                            <h3>
+                                <asp:Literal ID="lSaveAccountTitle" runat="server" /></h3>
                             <Rock:RockCheckBox ID="cbSaveAccount" runat="server" Text="Save account information for future gifts" CssClass="js-save-account" />
 
                             <asp:Panel ID="pnlSaveAccountEntry" runat="server" class="js-save-account-entry">
@@ -303,12 +309,14 @@
 
                                 </asp:Panel>
 
-                                <Rock:NotificationBox ID="nbSaveAccount" runat="server" Visible="false" NotificationBoxType="Danger" />
+                                <Rock:NotificationBox ID="nbSaveAccountError" runat="server" Visible="false" NotificationBoxType="Danger" />
 
                                 <div id="divSaveActions" runat="server" class="actions">
                                     <Rock:BootstrapButton ID="btnSaveAccount" runat="server" Text="Save Account" CssClass="btn btn-primary" ValidationGroup="vgSaveAccount" OnClick="btnSaveAccount_Click" DataLoadingText="Saving..." />
                                 </div>
                             </asp:Panel>
+
+                            <Rock:NotificationBox ID="nbSaveAccountSuccess" runat="server" Visible="false" NotificationBoxType="Success" />
 
                         </asp:Panel>
                     </asp:Panel>

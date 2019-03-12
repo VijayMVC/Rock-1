@@ -171,7 +171,7 @@ namespace RockWeb.Blocks.Finance
 
     [TextField(
         "Comment Entry Label",
-        Key = AttributeKey.EnableCommentEntry,
+        Key = AttributeKey.CommentEntryLabel,
         Description = "The label to use on the comment edit field (e.g. Trip Name to give to a specific trip).",
         DefaultValue = "Comment",
         IsRequired = false,
@@ -181,7 +181,8 @@ namespace RockWeb.Blocks.Finance
     [CodeEditorField(
         "Payment Comment Template",
         Key = AttributeKey.PaymentCommentTemplate,
-        Description = @"The comment to include with the payment transaction when sending to Gateway. <span class='tip tip-lava'></span>.",
+        Description = @"The comment to include with the payment transaction when sending to Gateway. <span class='tip tip-lava'></span>",
+        IsRequired = false,
         EditorMode = CodeEditorMode.Lava,
         Category = AttributeCategory.PaymentComments,
         Order = 3 )]
@@ -200,10 +201,10 @@ namespace RockWeb.Blocks.Finance
 
     [CodeEditorField(
         "Intro Message",
-        Key = AttributeKey.IntroMessage,
+        Key = AttributeKey.IntroMessageTemplate,
         EditorMode = CodeEditorMode.Lava,
-        Description = "The text to place at the top of the amount entry",
-        DefaultValue = "Your Generosity Changes Lives",
+        Description = "The text to place at the top of the amount entry. <span class='tip tip-lava'></span>",
+        DefaultValue = "<h2>Your Generosity Changes Lives</h2>",
         Category = AttributeCategory.TextOptions,
         Order = 2 )]
 
@@ -225,18 +226,10 @@ namespace RockWeb.Blocks.Finance
         "Finish Lava Template",
         Key = AttributeKey.FinishLavaTemplate,
         EditorMode = CodeEditorMode.Lava,
-        Description = "The text (HTML) to display on the success page.",
+        Description = "The text (HTML) to display on the success page. <span class='tip tip-lava'></span>",
         DefaultValue = DefaultFinishLavaTemplate,
         Category = AttributeCategory.TextOptions,
         Order = 5 )]
-
-    [TextField(
-        "Save Account Title",
-        Key = AttributeKey.SaveAccountTitle,
-        Description = "The text to display as heading of section for saving payment information.",
-        DefaultValue = "Make Giving Even Easier",
-        Category = AttributeCategory.TextOptions,
-        Order = 6 )]
 
     #endregion
 
@@ -499,7 +492,7 @@ mission. We are so grateful for your commitment.</p>
 
             public const string EnableMultiAccount = "EnableMultiAccount";
 
-            public const string IntroMessage = "IntroMessage";
+            public const string IntroMessageTemplate = "IntroMessageTemplate";
 
             public const string FinishLavaTemplate = "FinishLavaTemplate";
 
@@ -558,6 +551,12 @@ mission. We are so grateful for your commitment.</p>
             public const string Person = "Person";
 
             public const string AttributeKeyPrefix = "Attribute_";
+
+            public const string AccountIdsOptions = "AccountIds";
+
+            public const string AccountGlCodesOptions = "AccountGlCodes";
+
+            public const string AmountLimit = "AmountLimit";
         }
 
         #endregion
@@ -645,6 +644,24 @@ mission. We are so grateful for your commitment.</p>
 
         #endregion Fields
 
+        #region helper classes
+
+        /// <summary>
+        /// Helper object for data passed via the request string.
+        /// </summary>
+        protected class ParameterAccountOption
+        {
+            public int? AccountId { get; set; }
+
+            public string AccountGLCode { get; set; }
+
+            public decimal? Amount { get; set; }
+
+            public bool Enabled { get; set; }
+        }
+
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -722,6 +739,17 @@ mission. We are so grateful for your commitment.</p>
 
             caapPromptForAccountAmounts.SelectableAccountIds = selectableAccountIds;
             caapPromptForAccountAmounts.AskForCampusIfKnown = this.GetAttributeValue( AttributeKey.AskForCampusIfKnown ).AsBoolean();
+
+            tglIndividualOrBusiness.Visible = this.GetAttributeValue( AttributeKey.EnableBusinessGiving ).AsBoolean();
+
+            cbGiveAnonymouslyIndividual.Visible = this.GetAttributeValue( AttributeKey.EnableAnonymousGiving ).AsBoolean();
+            cbGiveAnonymouslyIndividual.ToolTip = this.GetAttributeValue( AttributeKey.AnonymousGivingTooltip );
+            cbGiveAnonymouslyBusiness.Visible = this.GetAttributeValue( AttributeKey.EnableAnonymousGiving ).AsBoolean();
+            cbGiveAnonymouslyBusiness.ToolTip = this.GetAttributeValue( AttributeKey.AnonymousGivingTooltip );
+
+            // Evaluate if comment entry box should be displayed
+            tbCommentEntry.Label = GetAttributeValue( AttributeKey.CommentEntryLabel );
+            tbCommentEntry.Visible = GetAttributeValue( AttributeKey.EnableCommentEntry ).AsBoolean();
         }
 
         /// <summary>
@@ -772,9 +800,66 @@ mission. We are so grateful for your commitment.</p>
                 return;
             }
 
+            var allowAccountsInUrl = this.GetAttributeValue( AttributeKey.AllowAccountOptionsInURL ).AsBoolean();
+            var onlyPublicAccountsInURL = this.GetAttributeValue( AttributeKey.OnlyPublicAccountsInURL ).AsBoolean();
+
+            if ( allowAccountsInUrl )
+            {
+                List<ParameterAccountOption> parameterAccountOptions = ParseAccountUrlOptions();
+                if ( parameterAccountOptions.Any() )
+                {
+                    // TODO
+                }
+            }
+
+            // if Gateways are configured, show a warning if no Accounts are configured (we don't want to show an Accounts warning if they haven't configured a gateway yet)
+            if ( !caapPromptForAccountAmounts.SelectableAccountIds.Any() )
+            {
+                ShowConfigurationMessage( NotificationBoxType.Warning, "Configuration", "At least one Financial Account must be selected in the configuration for this block." );
+            }
+
             SetInitialTargetPersonControls();
 
-            lIntroMessage.Text = this.GetAttributeValue( AttributeKey.IntroMessage );
+            string introMessageTemplate = this.GetAttributeValue( AttributeKey.IntroMessageTemplate );
+
+            Dictionary<string, object> introMessageMergeFields = null;
+
+            using ( var rockContext = new RockContext() )
+            {
+                IEntity transactionEntity = GetTransactionEntity();
+                if ( transactionEntity != null && introMessageTemplate.HasMergeFields() )
+                {
+                    // Resolve the text field merge fields
+                    introMessageMergeFields = LavaHelper.GetCommonMergeFields( this.RockPage );
+
+                    introMessageMergeFields.Add( "TransactionEntity", transactionEntity );
+                    var transactionEntityTypeId = transactionEntity.TypeId;
+
+                    // include any Transactions that are associated with the TransactionEntity for Lava
+                    var transactionEntityTransactions = new FinancialTransactionService( rockContext ).Queryable()
+                        .Include( a => a.TransactionDetails )
+                        .Where( a => a.TransactionDetails.Any( d => d.EntityTypeId.HasValue && d.EntityTypeId == transactionEntityTypeId && d.EntityId == transactionEntity.Id ) )
+                        .ToList();
+
+                    var transactionEntityTransactionsTotal = transactionEntityTransactions.SelectMany( d => d.TransactionDetails )
+                        .Where( d => d.EntityTypeId.HasValue && d.EntityTypeId == transactionEntityTypeId && d.EntityId == transactionEntity.Id )
+                        .Sum( d => ( decimal? ) d.Amount );
+
+                    introMessageMergeFields.Add( "TransactionEntityTransactions", transactionEntityTransactions );
+                    introMessageMergeFields.Add( "TransactionEntityTransactionsTotal", transactionEntityTransactionsTotal );
+
+                    introMessageMergeFields.Add( "AmountLimit", this.PageParameter( PageParameterKey.AmountLimit ).AsDecimalOrNull() );
+                }
+
+                if ( introMessageMergeFields != null )
+                {
+                    lIntroMessage.Text = introMessageTemplate.ResolveMergeFields( introMessageMergeFields );
+                }
+                else
+                {
+                    lIntroMessage.Text = introMessageTemplate;
+                }
+            }
 
             pnlTransactionEntry.Visible = true;
             bool enableMultiAccount = this.GetAttributeValue( AttributeKey.EnableMultiAccount ).AsBoolean();
@@ -804,6 +889,63 @@ mission. We are so grateful for your commitment.</p>
             pnbPhoneBusiness.Visible = GetAttributeValue( AttributeKey.PromptForPhone ).AsBoolean();
 
             UpdateGivingControlsForSelections();
+        }
+
+        /// <summary>
+        /// Parses the account URL options.
+        /// </summary>
+        /// <returns></returns>
+        private List<ParameterAccountOption> ParseAccountUrlOptions()
+        {
+            List<ParameterAccountOption> result = new List<ParameterAccountOption>();
+            result.AddRange( ParseAccountUrlOptionsParameter( this.PageParameter( PageParameterKey.AccountIdsOptions ), false ) );
+            result.AddRange( ParseAccountUrlOptionsParameter( this.PageParameter( PageParameterKey.AccountGlCodesOptions ), true ) );
+            return result;
+        }
+
+        /// <summary>
+        /// Parses the account URL options parameter.
+        /// </summary>
+        /// <param name="accountOptionsParameterValue">The account options parameter value.</param>
+        /// <param name="parseAsAccountGLCode">if set to <c>true</c> [parse as account gl code].</param>
+        /// <returns></returns>
+        private List<ParameterAccountOption> ParseAccountUrlOptionsParameter( string accountOptionsParameterValue, bool parseAsAccountGLCode )
+        {
+            List<ParameterAccountOption> result = new List<ParameterAccountOption>();
+            if ( accountOptionsParameterValue.IsNotNullOrWhiteSpace() )
+            {
+                return result;
+            }
+
+            var accountOptions = Server.UrlDecode( accountOptionsParameterValue ).Split( ',' );
+
+            foreach ( var accountOption in accountOptions )
+            {
+                ParameterAccountOption parameterAccountOption = new ParameterAccountOption();
+                var accountOptionParts = accountOption.Split( '^' ).ToList();
+                if ( accountOptionParts.Count > 0 )
+                {
+                    while ( accountOptionParts.Count < 3 )
+                    {
+                        accountOptionParts.Add( null );
+                    }
+
+                    if ( parseAsAccountGLCode )
+                    {
+                        parameterAccountOption.AccountGLCode = accountOptionParts[0];
+                    }
+                    else
+                    {
+                        parameterAccountOption.AccountId = accountOptionParts[0].AsInteger();
+                    }
+
+                    parameterAccountOption.Amount = accountOptionParts[1].AsDecimalOrNull();
+                    parameterAccountOption.Enabled = accountOptionParts[2].AsBooleanOrNull() ?? true;
+                    result.Add( parameterAccountOption );
+                }
+            }
+
+            return result;
         }
 
         #endregion
@@ -1244,7 +1386,7 @@ mission. We are so grateful for your commitment.</p>
                 }
             }
 
-            pnlAnonymousNameEntry.Visible = targetPerson == null;
+            pnlNotLoggedInNameEntry.Visible = targetPerson == null;
 
             // show a prompt for Business Contact on the pnlPersonInformationAsBusiness panel if we don't have a target person so that we can create a person to be associated with the new business
             pnlBusinessContactAnonymous.Visible = targetPerson == null;
@@ -1381,8 +1523,10 @@ mission. We are so grateful for your commitment.</p>
                 newPersonOrBusiness.RecordStatusValueId = dvcRecordStatus.Id;
             }
 
-            // Create Person and Family
-            Group familyGroup = PersonService.SaveNewPerson( newPersonOrBusiness, rockContext, null, false );
+            int? campusId = caapPromptForAccountAmounts.CampusId;
+
+            // Create Person and Family, and set their primary campus to the one they gave money to
+            Group familyGroup = PersonService.SaveNewPerson( newPersonOrBusiness, rockContext, campusId, false );
 
             // SaveNewPerson should have already done this, but just in case
             rockContext.SaveChanges();
@@ -1777,7 +1921,6 @@ mission. We are so grateful for your commitment.</p>
                 ShowTransactionSummary();
             }
 
-
             bool givingAsBusiness = this.GivingAsBusiness();
             var financialGatewayComponent = this.FinancialGatewayComponent;
             string errorMessage;
@@ -1990,6 +2133,37 @@ mission. We are so grateful for your commitment.</p>
                 paymentInfo.LastName = tbLastName.Text;
             }
 
+            // get the payment comment
+            var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson );
+            mergeFields.Add( "TransactionDateTime", RockDateTime.Now );
+
+            if ( paymentInfo != null )
+            {
+                mergeFields.Add( "CurrencyType", paymentInfo.CurrencyTypeValue );
+            }
+
+            var commentTransactionAccountDetails = new List<FinancialTransactionDetail>();
+            PopulateTransactionDetails( commentTransactionAccountDetails );
+            mergeFields.Add( "TransactionAccountDetails", commentTransactionAccountDetails.Where( a => a.Amount != 0 ).ToList() );
+
+            string paymentComment = GetAttributeValue( AttributeKey.PaymentCommentTemplate ).ResolveMergeFields( mergeFields );
+
+            if ( GetAttributeValue( AttributeKey.EnableCommentEntry ).AsBoolean() )
+            {
+                if ( paymentComment.IsNotNullOrWhiteSpace() )
+                {
+                    paymentInfo.Comment1 = string.Format( "{0}: {1}", paymentComment, tbCommentEntry.Text );
+                }
+                else
+                {
+                    paymentInfo.Comment1 = tbCommentEntry.Text;
+                }
+            }
+            else
+            {
+                paymentInfo.Comment1 = paymentComment;
+            }
+
             return paymentInfo;
         }
 
@@ -2042,6 +2216,7 @@ mission. We are so grateful for your commitment.</p>
 
             if ( !UsingPersonSavedAccount() )
             {
+                lSaveAccountTitle.Text = GetAttributeValue( AttributeKey.SaveAccountTitle );
                 pnlSaveAccountPrompt.Visible = true;
 
                 // Show save account info based on if checkbox is checked
@@ -2074,7 +2249,15 @@ mission. We are so grateful for your commitment.</p>
             transaction.Guid = hfTransactionGuid.Value.AsGuid();
 
             transaction.AuthorizedPersonAliasId = new PersonAliasService( rockContext ).GetPrimaryAliasId( personId );
-            // TODO: transaction.ShowAsAnonymous = cbGiveAnonymously.Checked;
+            if ( this.GivingAsBusiness() )
+            {
+                transaction.ShowAsAnonymous = cbGiveAnonymouslyBusiness.Checked;
+            }
+            else
+            {
+                transaction.ShowAsAnonymous = cbGiveAnonymouslyIndividual.Checked;
+            }
+
             transaction.TransactionDateTime = RockDateTime.Now;
             transaction.FinancialGatewayId = financialGateway.Id;
 
@@ -2252,8 +2435,7 @@ mission. We are so grateful for your commitment.</p>
                         IService serviceInstance = Reflection.GetServiceForEntityType( transactionEntityType.GetEntityType(), dbContext );
                         if ( serviceInstance != null )
                         {
-                            System.Reflection.MethodInfo getMethod = serviceInstance.GetType().GetMethod( "Get", new Type[] { typeof( int ) } );
-                            transactionEntity = getMethod.Invoke( serviceInstance, new object[] { entityId.Value } ) as Rock.Data.IEntity;
+                            transactionEntity = serviceInstance.GetNoTracking( entityId.Value );
                         }
                     }
                 }
@@ -2295,10 +2477,10 @@ mission. We are so grateful for your commitment.</p>
                 string errorMessage = null;
                 if ( !UserLoginService.IsValidNewUserLogin( tbUserName.Text, tbPassword.Text, tbPasswordConfirm.Text, out errorTitle, out errorMessage ) )
                 {
-                    nbSaveAccount.Title = errorTitle;
-                    nbSaveAccount.Text = errorMessage;
-                    nbSaveAccount.NotificationBoxType = NotificationBoxType.Validation;
-                    nbSaveAccount.Visible = true;
+                    nbSaveAccountError.Title = errorTitle;
+                    nbSaveAccountError.Text = errorMessage;
+                    nbSaveAccountError.NotificationBoxType = NotificationBoxType.Validation;
+                    nbSaveAccountError.Visible = true;
                     return;
                 }
 
@@ -2358,10 +2540,10 @@ mission. We are so grateful for your commitment.</p>
             pnlCreateLogin.Visible = false;
             divSaveActions.Visible = false;
 
-            nbSaveAccount.Title = "Success";
-            nbSaveAccount.Text = "The account has been saved for future use";
-            nbSaveAccount.NotificationBoxType = NotificationBoxType.Success;
-            nbSaveAccount.Visible = true;
+            nbSaveAccountSuccess.Title = "Success";
+            nbSaveAccountSuccess.Text = "The account has been saved for future use";
+            nbSaveAccountSuccess.NotificationBoxType = NotificationBoxType.Success;
+            nbSaveAccountSuccess.Visible = true;
         }
 
         /// <summary>

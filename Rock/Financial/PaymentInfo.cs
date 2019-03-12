@@ -147,7 +147,7 @@ namespace Rock.Financial
         public virtual string Comment1 { get; set; }
 
         /// <summary>
-        /// Gets or sets the first comment line.
+        /// Gets or sets the second comment line.
         /// </summary>
         public virtual string Comment2 { get; set; }
 
