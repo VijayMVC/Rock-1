@@ -39,57 +39,7 @@
             <div class="row">
                 <%-- Scheduled Gifts Panel --%>
                 <asp:Panel ID="pnlScheduledTransactions" runat="server" CssClass="col-sm-4 scheduled-transactions" Visible="false">
-                    <h4>
-                        <asp:Literal ID="lScheduledTransactionsTitle" runat="server" Text="Scheduled Transactions" /></h4>
-
-                    <asp:Repeater ID="rptScheduledTransactions" runat="server" OnItemDataBound="rptScheduledTransactions_ItemDataBound">
-                        <ItemTemplate>
-                            <div class="scheduled-transaction js-scheduled-transaction">
-
-                                <asp:HiddenField ID="hfScheduledTransactionId" runat="server" />
-                                <Rock:HiddenFieldWithClass ID="hfScheduledTransactionExpanded" CssClass="js-scheduled-transaction-expanded" runat="server" Value="false" />
-
-                                <div class="panel panel-default">
-                                    <div class="panel-heading">
-                                        <span class="panel-title h1"><i class="fa fa-calendar"></i>
-                                            <asp:Literal ID="lScheduledTransactionTitle" runat="server" /></span>
-
-                                        <span class="js-scheduled-totalamount scheduled-totalamount margin-l-md">
-                                            <asp:Literal ID="lScheduledTransactionAmountTotal" runat="server" />
-                                        </span>
-
-                                        <div class="panel-actions pull-right">
-                                            <span class="js-toggle-scheduled-details toggle-scheduled-details clickable fa fa-plus"></span>
-                                        </div>
-                                    </div>
-                                    <div class="js-scheduled-details scheduled-details margin-l-lg">
-                                        <div class="panel-body">
-
-                                            <asp:Repeater ID="rptScheduledTransactionAccounts" runat="server" OnItemDataBound="rptScheduledTransactionAccounts_ItemDataBound">
-                                                <ItemTemplate>
-                                                    <div class="account-details margin-l-sm">
-                                                        <span class="scheduled-transaction-account control-label">
-                                                            <asp:Literal ID="lScheduledTransactionAccountName" runat="server" /></span>
-                                                        <br />
-                                                        <span class="scheduled-transaction-amount">
-                                                            <asp:Literal ID="lScheduledTransactionAmount" runat="server" /></span>
-                                                    </div>
-                                                </ItemTemplate>
-                                            </asp:Repeater>
-
-                                            <Rock:NotificationBox ID="nbScheduledTransactionMessage" runat="server" Visible="false" />
-
-                                            <asp:Panel ID="pnlActions" runat="server" CssClass="scheduled-details-actions">
-                                                <asp:LinkButton ID="btnScheduledTransactionEdit" runat="server" CssClass="btn btn-sm btn-link" Text="Edit" OnClick="btnScheduledTransactionEdit_Click" />
-                                                <asp:LinkButton ID="btnScheduledTransactionDelete" runat="server" CssClass="btn btn-sm btn-link" Text="Delete" OnClick="btnScheduledTransactionDelete_Click" />
-                                            </asp:Panel>
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </ItemTemplate>
-                    </asp:Repeater>
+                    <asp:Literal ID="lScheduledTransactionsHTML" runat="server" />
                 </asp:Panel>
 
                 <%-- Transaction Entry Panel --%>
@@ -97,7 +47,7 @@
 
                     <%-- Collect Transaction Info (step 1) --%>
                     <asp:Panel ID="pnlPromptForAmounts" runat="server">
-                        
+
                         <asp:Literal ID="lIntroMessage" runat="server" />
 
                         <Rock:CampusAccountAmountPicker ID="caapPromptForAccountAmounts" runat="server" />
@@ -328,35 +278,6 @@
 
         <script type="text/javascript">
 
-            // Scheduled Transaction JavaScripts
-            function setScheduledDetailsVisibility($container, animate) {
-                var $scheduledDetails = $container.find('.js-scheduled-details');
-                var $expanded = $container.find('.js-scheduled-transaction-expanded');
-                var $totalAmount = $container.find('.js-scheduled-totalamount');
-                var $toggle = $container.find('.js-toggle-scheduled-details');
-
-                if ($expanded.val() == 1) {
-                    if (animate) {
-                        $scheduledDetails.slideDown();
-                        $totalAmount.fadeOut();
-                    } else {
-                        $scheduledDetails.show();
-                        $totalAmount.hide();
-                    }
-
-                    $toggle.removeClass('fa-plus').addClass('fa-minus');
-                } else {
-                    if (animate) {
-                        $scheduledDetails.slideUp();
-                        $totalAmount.fadeIn();
-                    } else {
-                        $scheduledDetails.hide();
-                        $totalAmount.show();
-                    }
-
-                    $toggle.removeClass('fa-minus').addClass('fa-plus');
-                }
-            };
 
             function showSaveAccount(animate) {
                 var show = $('.js-save-account').is(':checked');
@@ -379,33 +300,14 @@
             }
 
             Sys.Application.add_load(function () {
-                var $scheduleDetailsContainers = $('.js-scheduled-transaction');
-
-                $scheduleDetailsContainers.each(function (index) {
-                    setScheduledDetailsVisibility($($scheduleDetailsContainers[index]), false);
-                });
 
                 $('.js-submit-hostedpaymentinfo').click(function () {
                     <%=HostPaymentInfoSubmitScript%>
                 });
 
-                var $toggleScheduledDetails = $('.js-toggle-scheduled-details');
-                $toggleScheduledDetails.click(function () {
-                    var $scheduledDetailsContainer = $(this).closest('.js-scheduled-transaction');
-                    var $expanded = $scheduledDetailsContainer.find('.js-scheduled-transaction-expanded');
-                    if ($expanded.val() == 1) {
-                        $expanded.val(0);
-                    } else {
-                        $expanded.val(1);
-                    }
-
-                    setScheduledDetailsVisibility($scheduledDetailsContainer, true);
-                });
-
 
                 if ($('.js-save-account').length > 0) {
 
-                    debugger
                     showSaveAccount();
 
                     // Hide or show a div based on selection of checkbox

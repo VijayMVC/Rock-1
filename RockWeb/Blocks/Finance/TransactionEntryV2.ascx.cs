@@ -150,12 +150,21 @@ namespace RockWeb.Blocks.Finance
         Category = AttributeCategory.ScheduleGifts,
         Order = 2 )]
 
+    [CodeEditorField(
+        "Scheduled Gifts Template",
+        Key = AttributeKey.ScheduledTransactionsTemplate,
+        Description = "The Lava Template to use to display Scheduled Gifts.",
+        DefaultValue = defaultScheduledTransactionsTemplate,
+        EditorMode = CodeEditorMode.Lava,
+        Category = AttributeCategory.ScheduleGifts,
+        Order = 3 )]
+
     [LinkedPage(
         "Scheduled Transaction Edit Page",
         Key = AttributeKey.ScheduledTransactionEditPage,
         Description = "The page to use for editing scheduled transactions.",
         Category = AttributeCategory.ScheduleGifts,
-        Order = 3 )]
+        Order = 4 )]
 
     #endregion
 
@@ -443,6 +452,107 @@ mission. We are so grateful for your commitment.</p>
     </dd>
 </dl>
 ";
+
+        public const string defaultScheduledTransactionsTemplate = @"
+<h4>Scheduled {{ GiftTerm | Pluralize }}</h4>
+
+{% for scheduledTransaction in ScheduledTransactions %}
+    <div class='scheduled-transaction js-scheduled-transaction' data-scheduled-transaction-id='{{ scheduledTransaction.Id }}' data-expanded='{{ ExpandedStates[scheduledTransaction.Id] }}'>
+        <div class='panel panel-default'>
+            <div class='panel-heading'>
+                <span class='panel-title h1'>
+                    <i class='fa fa-calendar'></i>
+                    {{ scheduledTransaction.TransactionFrequencyValue.Value }}                              
+                </span>
+
+                <span class='js-scheduled-totalamount scheduled-totalamount margin-l-md'>
+                    {{ scheduledTransaction.TotalAmount | FormatAsCurrency }}
+                </span>
+
+                <div class='panel-actions pull-right'>
+                    <span class='js-toggle-scheduled-details toggle-scheduled-details clickable fa fa-plus'></span>
+                </div>
+            </div>
+
+            <div class='js-scheduled-details scheduled-details margin-l-lg'>
+                <div class='panel-body'>
+                    {% for scheduledTransactionDetail in scheduledTransaction.ScheduledTransactionDetails %}
+                        <div class='account-details margin-l-sm'>
+                            <span class='scheduled-transaction-account control-label'>
+                                {{ scheduledTransactionDetail.Account.Name }}
+                            </span>
+                            <br />
+                            <span class='scheduled-transaction-amount'>
+                                {{ scheduledTransactionDetail.Amount | FormatAsCurrency }}
+                            </span>
+                        </div>
+                    {% endfor %}
+
+                    <div class='scheduled-details-actions'>
+                        <a class='btn btn-sm btn-link' onclick='{{ scheduledTransaction.Id | Postback:'EditScheduledTransaction' }}'>Edit</a>
+                        <a class='btn btn-sm btn-link' onclick='{{ scheduledTransaction.Id | Postback:'DeleteScheduledTransaction' }}'>Delete</a>
+                    </div>
+                </div>
+            </div>                
+        </div>
+    </div>
+{% endfor %}
+
+
+<script type='text/javascript'>
+
+    // Scheduled Transaction JavaScripts
+    function setScheduledDetailsVisibility($container, animate) {
+        var $scheduledDetails = $container.find('.js-scheduled-details');
+        var expanded = $container.attr('data-expanded');
+        var $totalAmount = $container.find('.js-scheduled-totalamount');
+        var $toggle = $container.find('.js-toggle-scheduled-details');
+
+        if (expanded == 1) {
+            if (animate) {
+                $scheduledDetails.slideDown();
+                $totalAmount.fadeOut();
+            } else {
+                $scheduledDetails.show();
+                $totalAmount.hide();
+            }
+
+            $toggle.removeClass('fa-plus').addClass('fa-minus');
+        } else {
+            if (animate) {
+                $scheduledDetails.slideUp();
+                $totalAmount.fadeIn();
+            } else {
+                $scheduledDetails.hide();
+                $totalAmount.show();
+            }
+
+            $toggle.removeClass('fa-minus').addClass('fa-plus');
+        }
+    };
+
+    Sys.Application.add_load(function () {
+        var $scheduleDetailsContainers = $('.js-scheduled-transaction');
+
+        $scheduleDetailsContainers.each(function (index) {
+            setScheduledDetailsVisibility($($scheduleDetailsContainers[index]), false);
+        });
+
+        var $toggleScheduledDetails = $('.js-toggle-scheduled-details');
+        $toggleScheduledDetails.click(function () {
+            var $scheduledDetailsContainer = $(this).closest('.js-scheduled-transaction');
+            if ($scheduledDetailsContainer.attr('data-expanded') == 1) {
+                $scheduledDetailsContainer.attr('data-expanded', 0);
+            } else {
+                $scheduledDetailsContainer.attr('data-expanded', 1);
+            }
+
+            setScheduledDetailsVisibility($scheduledDetailsContainer, true);
+        });
+    });
+</script>
+";
+
         #endregion
 
         #region Attribute Keys
@@ -481,6 +591,8 @@ mission. We are so grateful for your commitment.</p>
             public const string FinancialSourceType = "FinancialSourceType";
 
             public const string ShowScheduledTransactions = "ShowScheduledTransactions";
+
+            public const string ScheduledTransactionsTemplate = "ScheduledTransactionsTemplate";
 
             public const string ScheduledTransactionEditPage = "ScheduledTransactionEditPage";
 
@@ -892,7 +1004,7 @@ mission. We are so grateful for your commitment.</p>
 
             if ( this.GetAttributeValue( AttributeKey.ShowScheduledTransactions ).AsBoolean() )
             {
-                lScheduledTransactionsTitle.Text = string.Format( "Scheduled {0}", ( this.GetAttributeValue( AttributeKey.GiftTerm ) ?? "Gift" ).Pluralize() );
+                
                 pnlScheduledTransactions.Visible = true;
                 BindScheduledTransactions();
             }
@@ -1171,6 +1283,9 @@ mission. We are so grateful for your commitment.</p>
                 return;
             }
 
+            var mergeFields = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson, new CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
+            mergeFields.Add( "GiftTerm", ( this.GetAttributeValue( AttributeKey.GiftTerm ) ?? "Gift" ) );
+
             FinancialScheduledTransactionService financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
 
             // get business giving id
@@ -1186,7 +1301,8 @@ mission. We are so grateful for your commitment.</p>
             foreach ( var scheduledTransaction in scheduledTransactionList )
             {
                 string errorMessage;
-                financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
+                // TODO...
+                //financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
             }
 
             rockContext.SaveChanges();
@@ -1194,8 +1310,12 @@ mission. We are so grateful for your commitment.</p>
             pnlScheduledTransactions.Visible = scheduledTransactionList.Any();
 
             scheduledTransactionList = scheduledTransactionList.OrderByDescending( a => a.NextPaymentDate ).ToList();
-            rptScheduledTransactions.DataSource = scheduledTransactionList;
-            rptScheduledTransactions.DataBind();
+
+            mergeFields.Add( "ScheduledTransactions", scheduledTransactionList );
+            var scheduledTransactionsTemplate = this.GetAttributeValue( AttributeKey.ScheduledTransactionsTemplate );
+
+            // TODO, figure out how to do the EDIT/DELETE commands in the lava
+            lScheduledTransactionsHTML.Text = scheduledTransactionsTemplate.ResolveMergeFields( mergeFields );
         }
 
         /// <summary>
@@ -1700,9 +1820,6 @@ mission. We are so grateful for your commitment.</p>
             {
                 return;
             }
-
-            int oneTimeFrequencyId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME.AsGuid() ) ?? 0;
-            bool oneTime = selectedScheduleFrequencyId == oneTimeFrequencyId;
 
             personSavedAccountsQuery = personSavedAccountsQuery.Where( a =>
                 a.FinancialGatewayId == financialGateway.Id

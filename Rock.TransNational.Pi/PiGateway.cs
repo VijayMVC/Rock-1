@@ -1017,6 +1017,8 @@ namespace Rock.TransNational.Pi
                     scheduledTransaction.NextPaymentDate = subscriptionInfo.NextBillDateUTC.Value.ToLocalTime().Date;
                 }
 
+                scheduledTransaction.LastStatusUpdateDateTime = RockDateTime.Now;
+
                 errorMessage = string.Empty;
                 return true;
             }
