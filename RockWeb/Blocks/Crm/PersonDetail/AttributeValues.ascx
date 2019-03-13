@@ -16,7 +16,7 @@
         <div class="panel-body">
             <Rock:HiddenFieldWithClass ID="hfAttributeOrder" runat="server" CssClass="js-attribute-values-order" />
             <asp:ValidationSummary ID="valSummaryTop" runat="server"  HeaderText="Please correct the following:" CssClass="alert alert-validation" />
-            <fieldset id="fsAttributes" runat="server" class="attribute-values"></fieldset>
+            <Rock:AttributeValuesContainer id="avcAttributes" runat="server" class="attribute-values" />
             <asp:Panel ID="pnlActions" runat="server" CssClass="actions" Visible="false">
                 <asp:LinkButton ID="btnSave" runat="server" AccessKey="s" ToolTip="Alt+s" Text="Save" CssClass="btn btn-primary btn-xs" OnClick="btnSave_Click" ValidationGroup="vgAttributeValues" />
                 <asp:LinkButton ID="btnCancel" runat="server" AccessKey="c" ToolTip="Alt+c" Text="Cancel" CssClass="btn btn-xs btn-link" OnClick="btnCancel_Click" CausesValidation="false" />

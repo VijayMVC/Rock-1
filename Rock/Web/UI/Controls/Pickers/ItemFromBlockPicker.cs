@@ -514,12 +514,14 @@ namespace Rock.Web.UI.Controls
             _pickerDialog.SaveButtonText = "Select";
 
             _pickerPanel = new Panel();
+            _pickerPanel.ID = "_pickerPanel";
 
             if ( BlockTypePath.IsNotNullOrWhiteSpace() )
             {
                 var rockPage = System.Web.HttpContext.Current.Handler as RockPage;
                 _pickerBlock = rockPage.TemplateControl.LoadControl( BlockTypePath ) as UserControl;
-                
+                _pickerBlock.ID = "_pickerBlock";
+
                 var pageCache = PageCache.Get( rockPage.PageId );
                 ( _pickerBlock as RockBlock )?.SetBlock( pageCache, null, false, false );
 
@@ -544,6 +546,7 @@ namespace Rock.Web.UI.Controls
                 {
                     // enforce that the block has to implement IPickerBLock
                     var nbInvalidBLock = new NotificationBox { NotificationBoxType = NotificationBoxType.Danger, Text = $"<strong>{BlockTypePath}<strong> is not a valid PickerBlock", Visible = true };
+                    nbInvalidBLock.ID = "_nbInvalidBlock";
                     _pickerPanel.Controls.Add( nbInvalidBLock );
                 }
 
@@ -617,10 +620,11 @@ namespace Rock.Web.UI.Controls
         {
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockBlock().RockPage, null, new Rock.Lava.CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
             mergeFields.Add( "SelectedText", SelectedText );
-            mergeFields.Add( "SelectedValue", SelectedValue ?? string.Empty );
+            var selectedValue = SelectedValue;
+            mergeFields.Add( "SelectedValue", selectedValue ?? string.Empty );
 
             _lbShowPicker.Text = this.PickerButtonTemplate.ResolveMergeFields( mergeFields );
-            _btnSelectNone.Visible = SelectedValue.IsNotNullOrWhiteSpace() && _lbShowPicker.Visible;
+            _btnSelectNone.Visible = selectedValue.IsNotNullOrWhiteSpace() && _lbShowPicker.Visible;
 
             if ( this.ShowInModal )
             {

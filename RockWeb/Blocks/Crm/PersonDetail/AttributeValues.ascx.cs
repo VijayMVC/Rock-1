@@ -52,7 +52,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
         private readonly string VIEW_MODE_EDIT = "EDIT";
         private readonly string VIEW_MODE_ORDER = "ORDER";
 
-        private bool _canAdministrate = false;
+        private bool _canAdministrate = false; 
 
         #endregion
 

@@ -37,7 +37,7 @@ namespace Rock.Web.UI.Controls
         private Panel _pnlEditMatrixItem;
         private HiddenField _hfMatrixItemId;
         private NotificationBox _nbWarning;
-        private DynamicPlaceholder _phMatrixItemAttributes;
+        private AttributeValuesContainer _avcMatrixItemAttributes;
         private Panel _pnlActions;
         private LinkButton _btnSaveMatrixItem;
         private LinkButton _btnCancelMatrixItem;
@@ -230,15 +230,10 @@ namespace Rock.Web.UI.Controls
             _hfMatrixItemId = new HiddenField { ID = "_hfMatrixItemId" };
             _pnlEditMatrixItem.Controls.Add( _hfMatrixItemId );
 
-            _phMatrixItemAttributes = new DynamicPlaceholder { ID = "_phMatrixItemAttributes" };
-            _pnlEditMatrixItem.Controls.Add( _phMatrixItemAttributes );
+            _avcMatrixItemAttributes = new AttributeValuesContainer { ID = "_avcMatrixItemAttributes" };
+            _pnlEditMatrixItem.Controls.Add( _avcMatrixItemAttributes );
 
             string validationGroup = GetValidationGroupForAttributeControls();
-
-            if ( tempAttributeMatrixItem != null )
-            {
-                Rock.Attribute.Helper.AddEditControls( tempAttributeMatrixItem, _phMatrixItemAttributes, false, validationGroup );
-            }
 
             _pnlActions = new Panel { ID = "_pnlActions", CssClass = "actions" };
             _pnlEditMatrixItem.Controls.Add( _pnlActions );
@@ -331,13 +326,12 @@ namespace Rock.Web.UI.Controls
                 attributeMatrixItem.LoadAttributes();
             }
 
-            _phMatrixItemAttributes.Controls.Clear();
-
             // set the validation group on the controls and save button
             string validationGroup = GetValidationGroupForAttributeControls();
-            Rock.Attribute.Helper.AddEditControls( attributeMatrixItem, _phMatrixItemAttributes, true, validationGroup );
+            _avcMatrixItemAttributes.ValidationGroup = validationGroup;
+            _avcMatrixItemAttributes.AddEditControls( attributeMatrixItem );
 
-            // Make sure to set the validategroup on the save button to match, just in case it changed since CreateChildControls
+            // Make sure to set the ValidationGroup on the save button to match, just in case it changed since CreateChildControls
             _btnSaveMatrixItem.ValidationGroup = validationGroup;
 
             _gMatrixItems.Visible = false;
@@ -369,7 +363,7 @@ namespace Rock.Web.UI.Controls
             }
 
             attributeMatrixItem.LoadAttributes( rockContext );
-            Rock.Attribute.Helper.GetEditValues( _phMatrixItemAttributes, attributeMatrixItem );
+            _avcMatrixItemAttributes.GetEditValues( attributeMatrixItem );
             rockContext.SaveChanges();
             attributeMatrixItem.SaveAttributeValues( rockContext );
 
