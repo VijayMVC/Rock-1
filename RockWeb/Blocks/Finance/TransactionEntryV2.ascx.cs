@@ -444,8 +444,9 @@ mission. We are so grateful for your commitment.</p>
 
     <dt>When<dt>
     <dd>
-    {% if PaymentSchedule %}
-        {{ PaymentSchedule | ToString }}
+    
+    {% if Transaction.TransactionFrequencyValue %}
+        {{ Transaction.TransactionFrequencyValue.Value }} starting on {{ Transaction.NextPaymentDate | Date:'sd' }}
     {% else %}
         Today
     {% endif %}
@@ -489,8 +490,10 @@ mission. We are so grateful for your commitment.</p>
                     {% endfor %}
 
                     <div class='scheduled-details-actions'>
-                        <a class='btn btn-sm btn-link' onclick='{{ scheduledTransaction.Id | Postback:'EditScheduledTransaction' }}'>Edit</a>
-                        <a class='btn btn-sm btn-link' onclick='{{ scheduledTransaction.Id | Postback:'DeleteScheduledTransaction' }}'>Delete</a>
+                        {% if LinkedPages.ScheduledTransactionEditPage != '' %}
+                            <a href='{{ LinkedPages.ScheduledTransactionEditPage }}?ScheduledTransactionId={{ scheduledTransaction.Id }}' class='btn btn-sm btn-link'>Edit</a>
+                        {% endif %}
+                        <a class='btn btn-sm btn-link' onclick=""{{ scheduledTransaction.Id | Postback:'DeleteScheduledTransaction' }}"">Delete</a>
                     </div>
                 </div>
             </div>                
@@ -892,6 +895,39 @@ mission. We are so grateful for your commitment.</p>
                 hfTransactionGuid.Value = Guid.NewGuid().ToString();
                 ShowDetails();
             }
+            else
+            {
+                RouteAction();
+            }
+        }
+
+        /// <summary>
+        /// Routes any actions that might have come from <seealso cref="AttributeKey.ScheduledTransactionsTemplate"/>
+        /// </summary>
+        private void RouteAction()
+        {
+            if ( this.Page.Request.Form["__EVENTARGUMENT"] != null )
+            {
+                string[] eventArgs = this.Page.Request.Form["__EVENTARGUMENT"].Split( '^' );
+
+                if ( eventArgs.Length == 2 )
+                {
+                    string action = eventArgs[0];
+                    string parameters = eventArgs[1];
+                    int? scheduledTransactionId;
+
+                    switch ( action )
+                    {
+                        case "DeleteScheduledTransaction":
+                            scheduledTransactionId = parameters.AsIntegerOrNull();
+                            if ( scheduledTransactionId.HasValue )
+                            {
+                                DeleteScheduledTransaction( scheduledTransactionId.Value );
+                            }
+                            break;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1270,7 +1306,7 @@ mission. We are so grateful for your commitment.</p>
         #region Scheduled Gifts Related
 
         /// <summary>
-        /// Binds the scheduled transactions.
+        /// Loads Scheduled Transactions into Lava Merge Fields for <seealso cref="AttributeKey.ScheduledTransactionsTemplate"/>
         /// </summary>
         private void BindScheduledTransactions()
         {
@@ -1285,6 +1321,10 @@ mission. We are so grateful for your commitment.</p>
 
             var mergeFields = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson, new CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
             mergeFields.Add( "GiftTerm", ( this.GetAttributeValue( AttributeKey.GiftTerm ) ?? "Gift" ) );
+
+            Dictionary<string, object> linkedPages = new Dictionary<string, object>();
+            linkedPages.Add( "ScheduledTransactionEditPage", LinkedPageRoute( AttributeKey.ScheduledTransactionEditPage ) );
+            mergeFields.Add( "LinkedPages", linkedPages );
 
             FinancialScheduledTransactionService financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
 
@@ -1301,8 +1341,7 @@ mission. We are so grateful for your commitment.</p>
             foreach ( var scheduledTransaction in scheduledTransactionList )
             {
                 string errorMessage;
-                // TODO...
-                //financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
+                financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
             }
 
             rockContext.SaveChanges();
@@ -1312,10 +1351,9 @@ mission. We are so grateful for your commitment.</p>
             scheduledTransactionList = scheduledTransactionList.OrderByDescending( a => a.NextPaymentDate ).ToList();
 
             mergeFields.Add( "ScheduledTransactions", scheduledTransactionList );
+            mergeFields.Add( "ScheduledTransactionEditURL", "" );
             var scheduledTransactionsTemplate = this.GetAttributeValue( AttributeKey.ScheduledTransactionsTemplate );
-
-            // TODO, figure out how to do the EDIT/DELETE commands in the lava
-            lScheduledTransactionsHTML.Text = scheduledTransactionsTemplate.ResolveMergeFields( mergeFields );
+            lScheduledTransactionsHTML.Text = scheduledTransactionsTemplate.ResolveMergeFields( mergeFields ).ResolveClientIds( upnlContent.ClientID );
         }
 
         /// <summary>
@@ -1359,28 +1397,11 @@ mission. We are so grateful for your commitment.</p>
         }
 
         /// <summary>
-        /// Handles the Click event of the btnScheduledTransactionEdit control.
+        /// Deletes the scheduled transaction.
         /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnScheduledTransactionEdit_Click( object sender, EventArgs e )
+        /// <param name="scheduledTransactionId">The scheduled transaction identifier.</param>
+        protected void DeleteScheduledTransaction( int scheduledTransactionId )
         {
-            var scheduledTransactionId = ( ( sender as LinkButton ).NamingContainer.FindControl( "hfScheduledTransactionId" ) as HiddenField ).Value.AsInteger();
-            NavigateToLinkedPage( AttributeKey.ScheduledTransactionEditPage, "ScheduledTransactionId", scheduledTransactionId );
-        }
-
-        /// <summary>
-        /// Handles the Click event of the btnScheduledTransactionDelete control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnScheduledTransactionDelete_Click( object sender, EventArgs e )
-        {
-            var namingContainer = ( sender as LinkButton ).NamingContainer;
-            var scheduledTransactionId = ( namingContainer.FindControl( "hfScheduledTransactionId" ) as HiddenField ).Value.AsInteger();
-            NotificationBox nbScheduledTransactionMessage = namingContainer.FindControl( "nbScheduledTransactionMessage" ) as NotificationBox;
-            Panel pnlActions = namingContainer.FindControl( "pnlActions" ) as Panel;
-
             using ( var rockContext = new Rock.Data.RockContext() )
             {
                 FinancialScheduledTransactionService financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
@@ -1405,25 +1426,18 @@ mission. We are so grateful for your commitment.</p>
                     }
 
                     rockContext.SaveChanges();
-
-                    nbConfigurationNotification.Dismissable = true;
-                    nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Success;
-                    nbScheduledTransactionMessage.Text = string.Format( "Your scheduled {0} has been deleted", GetAttributeValue( AttributeKey.GiftTerm ).ToLower() );
-                    nbScheduledTransactionMessage.Visible = true;
-                    pnlActions.Enabled = false;
-                    pnlActions.Controls.OfType<LinkButton>().ToList().ForEach( a => a.Enabled = false );
                 }
                 else
                 {
                     nbConfigurationNotification.Dismissable = true;
                     nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Danger;
-                    nbScheduledTransactionMessage.Text = string.Format( "An error occurred while deleting your scheduled {0}", GetAttributeValue( AttributeKey.GiftTerm ).ToLower() );
+                    nbConfigurationNotification.Text = string.Format( "An error occurred while deleting your scheduled {0}", GetAttributeValue( AttributeKey.GiftTerm ).ToLower() );
                     nbConfigurationNotification.Details = errorMessage;
-                    nbScheduledTransactionMessage.Visible = true;
-                    pnlActions.Enabled = false;
-                    pnlActions.Controls.OfType<LinkButton>().ToList().ForEach( a => a.Enabled = false );
+                    nbConfigurationNotification.Visible = true;
                 }
             }
+
+            BindScheduledTransactions();
         }
 
         #endregion Scheduled Gifts
@@ -2667,6 +2681,7 @@ mission. We are so grateful for your commitment.</p>
             savedAccount.ReferenceNumber = gatewayPersonIdentifier;
             savedAccount.Name = tbSaveAccount.Text;
             savedAccount.TransactionCode = TransactionCode;
+            savedAccount.GatewayPersonIdentifier = gatewayPersonIdentifier;
             savedAccount.FinancialGatewayId = financialGateway.Id;
             savedAccount.FinancialPaymentDetail = new FinancialPaymentDetail();
             savedAccount.FinancialPaymentDetail.AccountNumberMasked = paymentDetail.AccountNumberMasked;

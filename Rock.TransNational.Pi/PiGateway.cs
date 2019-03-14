@@ -379,6 +379,11 @@ namespace Rock.TransNational.Pi
         {
             var result = JsonConvert.DeserializeObject<T>( response.Content );
 
+            if ( result is BaseResponseData )
+            {
+                ( result as BaseResponseData ).StatusCode = response.StatusCode;
+            }
+
             if ( result == null )
             {
                 if ( response.ErrorException != null )
@@ -471,6 +476,17 @@ namespace Rock.TransNational.Pi
             string billingDays = null;
             int startDayOfMonth = subscriptionRequestParameters.NextBillDateUTC.Value.Day;
             int twiceMonthlySecondDayOfMonth = subscriptionRequestParameters.NextBillDateUTC.Value.AddDays( 15 ).Day;
+
+            // PiGateway doesn't allow Day of Month over 28, but will automatically schedule for the last day of the month if you pass in 31
+            if ( startDayOfMonth > 28 )
+            {
+                startDayOfMonth = 31;
+            }
+
+            if ( twiceMonthlySecondDayOfMonth > 28 )
+            {
+                twiceMonthlySecondDayOfMonth = 31;
+            }
 
             if ( scheduleTransactionFrequencyValueGuid == Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_MONTHLY.AsGuid() )
             {
@@ -862,12 +878,16 @@ namespace Rock.TransNational.Pi
 
             var customerId = referencedPaymentInfo.GatewayPersonIdentifier;
 
+            // we want to convert the startDate as a UTC Date, so get the UTC Date of the StartDate
+            // Add a day to the LocalDate before converting to UTC so make sure the UTC Date is on or after the specified date
+            var startDateUTC = DateTime.SpecifyKind( schedule.StartDate, DateTimeKind.Local ).AddDays(1).ToUniversalTime().Date;
+
             SubscriptionRequestParameters subscriptionParameters = new SubscriptionRequestParameters
             {
                 Customer = new SubscriptionCustomer { Id = customerId },
                 PlanId = null,
                 Description = $"Subscription for PersonId: {schedule.PersonId }",
-                NextBillDateUTC = schedule.StartDate.ToUniversalTime(),
+                NextBillDateUTC = startDateUTC,
                 Duration = 0,
                 Amount = paymentInfo.Amount
             };
@@ -970,6 +990,13 @@ namespace Rock.TransNational.Pi
             }
             else
             {
+                if ( subscriptionResult.StatusCode == System.Net.HttpStatusCode.NotFound || subscriptionResult.StatusCode == System.Net.HttpStatusCode.Forbidden )
+                {
+                    // assume as status code of Forbidden or NonFound indicates that the schedule doesn't exist, or was deleted
+                    errorMessage = string.Empty;
+                    return true;
+                }
+
                 errorMessage = subscriptionResult.Message;
                 return false;
             }
@@ -1024,6 +1051,14 @@ namespace Rock.TransNational.Pi
             }
             else
             {
+                if ( subscriptionResult.StatusCode == System.Net.HttpStatusCode.NotFound || subscriptionResult.StatusCode == System.Net.HttpStatusCode.Forbidden )
+                {
+                    // assume as status code of Forbidden or NonFound indicates that the schedule doesn't exist, or was deleted
+                    scheduledTransaction.IsActive = false;
+                    errorMessage = string.Empty;
+                    return true;
+                }
+
                 errorMessage = subscriptionResult.Message;
                 return false;
             }
@@ -1081,8 +1116,10 @@ namespace Rock.TransNational.Pi
         /// <returns></returns>
         public override string GetReferenceNumber( FinancialTransaction transaction, out string errorMessage )
         {
+            // PI Gateway uses either a PiGateway CustomerId for this, which is stored in FinancialPersonSavedAccount.GatewayPersonIdentifier, not a previously processed transaction
+            // Note: GatewayPersonIdentifer comes from CreateCustomerAccount
             errorMessage = string.Empty;
-            return transaction?.ScheduledTransaction.GatewayScheduleId?.ToString();
+            return string.Empty;
         }
 
         /// <summary>
@@ -1093,8 +1130,9 @@ namespace Rock.TransNational.Pi
         /// <returns></returns>
         public override string GetReferenceNumber( FinancialScheduledTransaction scheduledTransaction, out string errorMessage )
         {
+            // PI Gateway uses either a PiGateway CustomerId for this, which is stored in FinancialPersonSavedAccount.GatewayPersonIdentifier, not a previously scheduled transaction
             errorMessage = string.Empty;
-            return scheduledTransaction.GatewayScheduleId?.ToString();
+            return string.Empty;
         }
 
 

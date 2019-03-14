@@ -86,80 +86,8 @@
 
                     <%-- Collect Payment Info (step 2). Skip this if they using a saved giving method. --%>
                     <asp:Panel ID="pnlPaymentInfo" runat="server" Visible="false">
-                        <Rock:PanelWidget ID="pwTestCards" runat="server" Title="Test Cards">
-                            <table class="grid-table table table-bordered table-striped table-hover" style="font-family: Consolas">
-                                <thead>
-                                    <tr>
-                                        <th>Card Number</th>
-                                        <th>Card Brand</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>4111111111111111</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4005519200000004</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4009348888881881</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4012000033330026</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4012000077777777</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4012888888881881</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4217651111111119</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4500600000000061</td>
-                                        <td>visa</td>
-                                    </tr>
-                                    <tr>
-                                        <td>5555555555554444</td>
-                                        <td>mastercard</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2223000048400011</td>
-                                        <td>mastercard</td>
-                                    </tr>
-                                    <tr>
-                                        <td>378282246310005</td>
-                                        <td>amex</td>
-                                    </tr>
-                                    <tr>
-                                        <td>371449635398431</td>
-                                        <td>amex</td>
-                                    </tr>
-                                    <tr>
-                                        <td>6011111111111117</td>
-                                        <td>discover</td>
-                                    </tr>
-                                    <tr>
-                                        <td>36259600000004</td>
-                                        <td>diners</td>
-                                    </tr>
-                                    <tr>
-                                        <td>3530111333300000</td>
-                                        <td>jcb</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </Rock:PanelWidget>
-                        <h1>##Hosted Payment Control##</h1>
-                        <div style="border-width: thick; border-color: red; border-style: solid;" class="margin-b-md">
+                        
+                        <div class="margin-b-md">
                             <Rock:DynamicPlaceholder ID="phHostedPaymentControl" runat="server" />
                         </div>
 

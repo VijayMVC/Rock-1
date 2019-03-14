@@ -421,7 +421,7 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "cvv_response_code" )]
         public string CVVResponseCode { get; set; }
-        
+
     }
 
     /// <summary>
@@ -787,6 +787,12 @@ namespace Rock.TransNational.Pi
         /// </value>
         [Newtonsoft.Json.JsonExtensionData( ReadData = true, WriteData = false )]
         public IDictionary<string, Newtonsoft.Json.Linq.JToken> _additionalData { get; set; }
+
+        /// <summary>
+        /// The <seealso cref="System.Net.HttpStatusCode"/> that the HTTP Response returned
+        /// </summary>
+        [JsonIgnore]
+        public System.Net.HttpStatusCode StatusCode;
     }
 
     #endregion shared types
@@ -1497,7 +1503,7 @@ namespace Rock.TransNational.Pi
         /// The next bill date.
         /// </value>
         [JsonProperty( "next_bill_date" )]
-        [JsonConverter( typeof( RockJsonIsoDateConverter ) )]
+        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
         public DateTime? NextBillDateUTC { get; set; }
     }
 
@@ -1637,7 +1643,7 @@ namespace Rock.TransNational.Pi
         /// The next bill date.
         /// </value>
         [JsonProperty( "next_bill_date" )]
-        [JsonConverter( typeof( RockJsonIsoDateConverter ) )]
+        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
         public DateTime? NextBillDateUTC { get; set; }
 
         /// <summary>
@@ -1807,7 +1813,7 @@ namespace Rock.TransNational.Pi
         /// <value>
         /// The start date.
         /// </value>
-        [JsonConverter( typeof( RockJsonIsoDateConverter ) )]
+        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
         [JsonProperty( "start_date" )]
         public DateTime? UTCStartDate { get; set; }
 
@@ -1817,7 +1823,7 @@ namespace Rock.TransNational.Pi
         /// <value>
         /// The end date.
         /// </value>
-        [JsonConverter( typeof( RockJsonIsoDateConverter ) )]
+        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
         [JsonProperty( "end_date" )]
         public DateTime? UTCEndDate { get; set; }
     }
@@ -2208,12 +2214,43 @@ namespace Rock.TransNational.Pi
     /// <seealso cref="Newtonsoft.Json.Converters.IsoDateTimeConverter" />
     public class RockJsonIsoDateConverter : Newtonsoft.Json.Converters.IsoDateTimeConverter
     {
+        private DateTimeKind _dateTimeKind;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="RockJsonIsoDateConverter"/> class.
         /// </summary>
-        public RockJsonIsoDateConverter()
+        public RockJsonIsoDateConverter( DateTimeKind dateTimeKind ) : base()
         {
+            this._dateTimeKind = dateTimeKind;
             this.DateTimeFormat = "yyyy-MM-dd";
+        }
+
+        /// <summary>
+        /// Reads the JSON representation of the object.
+        /// </summary>
+        /// <param name="reader">The <see cref="T:Newtonsoft.Json.JsonReader" /> to read from.</param>
+        /// <param name="objectType">Type of the object.</param>
+        /// <param name="existingValue">The existing value of object being read.</param>
+        /// <param name="serializer">The calling serializer.</param>
+        /// <returns>
+        /// The object value.
+        /// </returns>
+        public override object ReadJson( JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer )
+        {
+            var result = base.ReadJson( reader, objectType, existingValue, serializer );
+
+            if ( result is DateTime )
+            {
+                var resultAsDateTime = result as DateTime?;
+                if ( resultAsDateTime.HasValue )
+                {
+                    // since we are dealing with a date (without time) make sure the returned date has its DateTimeKind set
+                    // For example, if we are expecting the date to be in UTC, set the DateTimeKind to UTC so any date math on it does the right thing
+                    result = DateTime.SpecifyKind( resultAsDateTime.Value, _dateTimeKind );
+                }
+            }
+
+            return result;
         }
     }
 
