@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
@@ -136,12 +137,7 @@ namespace Rock.Model
         /// Gets or sets the Collection of Assessments for each <see cref="Rock.Model.AssessmentType"/>.
         /// </summary>
         [DataMember]
-        public virtual ICollection<Assessment> Assessments
-        {
-            get { return _assessments; }
-            set { _assessments = value; }
-        }
-        private ICollection<Assessment> _assessments;
+        public virtual ICollection<Assessment> Assessments { get; set; } = new Collection<Assessment>();
 
         #endregion
 
@@ -155,7 +151,7 @@ namespace Rock.Model
         /// </returns>
         public override string ToString()
         {
-            return this.Title.ToStringSafe();
+            return this.Title;
         }
 
         #endregion
@@ -172,7 +168,7 @@ namespace Rock.Model
         /// Initializes a new instance of the <see cref="AssessmentTypeConfiguration" /> class.
         /// </summary>
         public AssessmentTypeConfiguration()
-        {
+        { 
         }
     }
 

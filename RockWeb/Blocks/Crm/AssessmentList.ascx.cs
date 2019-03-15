@@ -30,7 +30,9 @@ using Rock.Web.UI.Controls;
 
 namespace Rockweb.Blocks.Crm
 {
-    /// <summary>Lists all avalable assesments for the individual.</summary>
+    /// <summary>
+    /// Lists all avalable assesments for the individual.
+    /// </summary>
     [DisplayName( "Assessment List" )]
     [Category( "CRM" )]
     [Description( "Allows you to view and take any available assessments." )]
@@ -43,17 +45,20 @@ namespace Rockweb.Blocks.Crm
         true,
         order: 0 )]
 
-    [BooleanField( "Hide If No Active Requests",
+    [BooleanField(
+        "Hide If No Active Requests",
         "If enabled, the person can retake the test after the minimum days passes.",
         false,
         order: 1 )]
 
-    [BooleanField( "Hide If No Requests",
+    [BooleanField(
+        "Hide If No Requests",
         "If enabled, the person can retake the test after the minimum days passes.",
         false,
         order: 2 )]
 
-    [CodeEditorField( "Lava Template",
+    [CodeEditorField(
+        "Lava Template",
         "The lava template to use to format the entire block.  <span class='tip tip-lava'></span> <span class='tip tip-html'></span>",
         CodeEditorMode.Html,
         CodeEditorTheme.Rock,

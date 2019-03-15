@@ -161,7 +161,7 @@ namespace Rock.Model
         /// </returns>
         public override string ToString()
         {
-            return this.AssessmentResultData.ToStringSafe();
+            return this.AssessmentResultData;
         }
 
         #endregion
@@ -179,7 +179,7 @@ namespace Rock.Model
         /// </summary>
         public AssessmentConfiguration()
         {
-            this.HasRequired( a => a.AssessmentType ).WithMany().HasForeignKey( a => a.AssessmentTypeId ).WillCascadeOnDelete( true );
+            this.HasRequired( a => a.AssessmentType ).WithMany( a => a.Assessments ).HasForeignKey( a => a.AssessmentTypeId ).WillCascadeOnDelete( true );
             this.HasRequired( a => a.PersonAlias ).WithMany().HasForeignKey( a => a.PersonAliasId ).WillCascadeOnDelete( false );
             this.HasOptional( a => a.RequesterPersonAlias ).WithMany().HasForeignKey( a => a.RequesterPersonAliasId ).WillCascadeOnDelete( false );
         }

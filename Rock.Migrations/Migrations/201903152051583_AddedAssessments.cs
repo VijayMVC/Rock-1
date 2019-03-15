@@ -51,10 +51,8 @@ namespace Rock.Migrations
                         ForeignId = c.Int(),
                         ForeignGuid = c.Guid(),
                         ForeignKey = c.String(maxLength: 100),
-                        AssessmentType_Id = c.Int(),
                     })
                 .PrimaryKey(t => t.Id)
-                .ForeignKey("dbo.AssessmentType", t => t.AssessmentType_Id)
                 .ForeignKey("dbo.AssessmentType", t => t.AssessmentTypeId, cascadeDelete: true)
                 .ForeignKey("dbo.PersonAlias", t => t.CreatedByPersonAliasId)
                 .ForeignKey("dbo.PersonAlias", t => t.ModifiedByPersonAliasId)
@@ -65,8 +63,7 @@ namespace Rock.Migrations
                 .Index(t => t.RequesterPersonAliasId)
                 .Index(t => t.CreatedByPersonAliasId)
                 .Index(t => t.ModifiedByPersonAliasId)
-                .Index(t => t.Guid, unique: true)
-                .Index(t => t.AssessmentType_Id);
+                .Index(t => t.Guid, unique: true);
             
             CreateTable(
                 "dbo.AssessmentType",
@@ -112,11 +109,9 @@ namespace Rock.Migrations
             DropForeignKey("dbo.Assessment", "AssessmentTypeId", "dbo.AssessmentType");
             DropForeignKey("dbo.AssessmentType", "ModifiedByPersonAliasId", "dbo.PersonAlias");
             DropForeignKey("dbo.AssessmentType", "CreatedByPersonAliasId", "dbo.PersonAlias");
-            DropForeignKey("dbo.Assessment", "AssessmentType_Id", "dbo.AssessmentType");
             DropIndex("dbo.AssessmentType", new[] { "Guid" });
             DropIndex("dbo.AssessmentType", new[] { "ModifiedByPersonAliasId" });
             DropIndex("dbo.AssessmentType", new[] { "CreatedByPersonAliasId" });
-            DropIndex("dbo.Assessment", new[] { "AssessmentType_Id" });
             DropIndex("dbo.Assessment", new[] { "Guid" });
             DropIndex("dbo.Assessment", new[] { "ModifiedByPersonAliasId" });
             DropIndex("dbo.Assessment", new[] { "CreatedByPersonAliasId" });
