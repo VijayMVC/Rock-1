@@ -21,7 +21,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Runtime.Serialization;
-
+using System.Text;
 using Rock.Data;
 
 namespace Rock.Model
@@ -40,89 +40,89 @@ namespace Rock.Model
         /// Gets or sets the Title of the <see cref="Rock.Model.AssessmentType"/>  
         /// </summary>
         /// <value>
-        /// A <see cref="System.String"/> <c>false</c>.
+        /// A <see cref="System.String"/> for the Title.
         /// </value>
         [Required]
         [MaxLength(100)]
-        [DataMember]
+        [DataMember( IsRequired = true )]
         public string Title { get; set; }
 
         /// <summary>
         /// Gets or sets the Description of the <see cref="Rock.Model.AssessmentType"/>
         /// </summary>
         /// <value>
-        /// A <see cref="System.String"/> <c>false</c>.
+        /// A <see cref="System.String"/> for the Decsription.
         /// </value>
         [Required]
         [StringLength( 100, MinimumLength = 3 )]
         [MaxLength]
-        [DataMember]
+        [DataMember( IsRequired = true )]
         public string Description { get; set; }
 
         /// <summary>
         /// Gets or sets the AssessmentPath of the <see cref="Rock.Model.AssessmentType"/>  
         /// </summary>
         /// <value>
-        /// A <see cref="System.String"/> <c>false</c>.
+        /// A <see cref="System.String"/> for the AssessmentPath.
         /// </value>
         [Required]
         [MaxLength( 250 )]
-        [DataMember]
+        [DataMember( IsRequired = true )]
         public string AssessmentPath { get; set; }
 
         /// <summary>
-        /// Gets or sets the AssessmentResultsPath of the AssessmentType.
+        /// Gets or sets the AssessmentResultsPath of the <see cref="Rock.Model.Assessment"/> or the <see cref="Rock.Model.AssessmentType"/> if no requestor required.
         /// </summary>
         /// <value>
-        /// A <see cref="System.String"/> <c>false</c>.
+        /// A <see cref="System.String"/> for the AssessmentResultsPath
         /// </value>
         [MaxLength( 250 )]
         [DataMember]
         public string AssessmentResultsPath { get; set; }
 
         /// <summary>
-        /// Gets or sets the IsActive flag for the Assessment Type.
+        /// Gets or sets the IsActive flag for the <see cref="Rock.Model.AssessmentType"/>.
         /// </summary>
         /// <value>
-        /// A <see cref="System.Boolean"/> <c>false</c>.
+        /// A <see cref="System.Boolean"/> for the IsActive flag.
         /// </value>
         [Required]
         [DataMember]
         public Boolean IsActive { get; set; }
 
         /// <summary>
-        /// Gets or sets the RequiresRequest flag for the Assessment Type.
+        /// Gets or sets the RequiresRequest flag for the <see cref="Rock.Model.AssessmentType"/>.
         /// </summary>
         /// <value>
-        /// A <see cref="System.Boolean"/> <c>false</c>.
+        /// A <see cref="System.Boolean"/> for the RequiresRequest.
         /// </value>
         [Required]
         [DataMember]
         public Boolean RequiresRequest { get; set; }
 
         /// <summary>
-        /// Gets or sets the number of days given for the Assessment Type to be retaken.
+        /// Gets or sets the number of days given for the <see cref="Rock.Model.AssessmentType"/>. to be retaken.
         /// </summary>
         /// <value>
-        /// A <see cref="System.int"/> <c>false</c>.
+        /// A <see cref="System.int"/> for the minimum days allowed to retake the <see cref="Rock.Model.AssessmentType"/>.
         /// </value>
         [DataMember]
         public int MinimumDaysToRetake { get; set; }
 
         /// <summary>
-        /// Gets or sets the number for valid duration of the Assessment Type.
+        /// Gets or sets the number for valid duration of the <see cref="Rock.Model.AssessmentType"/>.
         /// </summary>
         /// <value>
-        /// A <see cref="System.int"/> <c>false</c>.
+        /// A <see cref="System.int"/> for the valid duration of the <see cref="Rock.Model.AssessmentType"/>..
         /// </value>
         [DataMember]
         public int ValidDuration { get; set; }
 
         /// <summary>
-        /// Gets or sets a flag indicating if this AssessmentType is a part of the Rock core system/framework. This property is required.
+        /// Gets or sets a flag indicating if this <see cref="Rock.Model.AssessmentType"/> is a part of the Rock core system/framework. This property is required.
         /// </summary>
         /// <value>
-        /// A <see cref="System.Boolean"/> value that is <c>true</c> if this AssessmentType is part of the Rock core system/framework; otherwise <c>false</c>.
+        /// A <see cref="System.Boolean"/> value that is <c>true</c> if this <see cref="Rock.Model.AssessmentType"/>. is part of the Rock core system/framework; otherwise <c>false</c>.
         /// </value>
         [Required]
         [DataMember( IsRequired = true )]
@@ -133,7 +133,7 @@ namespace Rock.Model
         #region Virtual Properties
 
         /// <summary>
-        /// Gets or sets the Collection of Assessments for each Assessment Type
+        /// Gets or sets the Collection of Assessments for each <see cref="Rock.Model.AssessmentType"/>.
         /// </summary>
         [DataMember]
         public virtual ICollection<Assessment> Assessments
@@ -142,6 +142,21 @@ namespace Rock.Model
             set { _assessments = value; }
         }
         private ICollection<Assessment> _assessments;
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance Title.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance Title.
+        /// </returns>
+        public override string ToString()
+        {
+            return this.Title.ToStringSafe();
+        }
 
         #endregion
     }

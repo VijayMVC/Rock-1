@@ -228,9 +228,9 @@
     <Compile Include="Migrations\201902272058547_PersonGivingLeaderIdUpdate.Designer.cs">
       <DependentUpon>201902272058547_PersonGivingLeaderIdUpdate.cs</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\201903151606584_AddedAssessments.cs" />
-    <Compile Include="Migrations\201903151606584_AddedAssessments.Designer.cs">
-      <DependentUpon>201903151606584_AddedAssessments.cs</DependentUpon>
+    <Compile Include="Migrations\201903152051583_AddedAssessments.cs" />
+    <Compile Include="Migrations\201903152051583_AddedAssessments.Designer.cs">
+      <DependentUpon>201903152051583_AddedAssessments.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\CreateDatabase\201311251734059_CreateDatabase.cs" />
     <Compile Include="Migrations\CreateDatabase\201311251734059_CreateDatabase.Designer.cs">
@@ -644,8 +644,8 @@
     <EmbeddedResource Include="Migrations\201902272058547_PersonGivingLeaderIdUpdate.resx">
       <DependentUpon>201902272058547_PersonGivingLeaderIdUpdate.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201903151606584_AddedAssessments.resx">
-      <DependentUpon>201903151606584_AddedAssessments.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\201903152051583_AddedAssessments.resx">
+      <DependentUpon>201903152051583_AddedAssessments.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\CreateDatabase\201311251734059_CreateDatabase.resx">
       <DependentUpon>201311251734059_CreateDatabase.cs</DependentUpon>

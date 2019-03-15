@@ -51,6 +51,12 @@ namespace Rock.Model
         public bool CanDelete( AssessmentType item, out string errorMessage )
         {
             errorMessage = string.Empty;
+ 
+            if ( new Service<Assessment>( Context ).Queryable().Any( a => a.AssessmentType_Id == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", AssessmentType.FriendlyTypeName, Assessment.FriendlyTypeName );
+                return false;
+            }  
             return true;
         }
     }

@@ -35,49 +35,61 @@ namespace Rockweb.Blocks.Crm
     [Category( "CRM" )]
     [Description( "Allows you to view and take any available assessments." )]
 
-    [BooleanField( "Only Show Requested", "When checked, limits the list to show only assessments that have been requested..",
-        true, order: 0 )]
-    [BooleanField( "Hide If No Active Requests", "If enabled, the person can retake the test after the minimum days passes.",
+    #region Block Attributes
+
+    [BooleanField(
+        "Only Show Requested",
+        "When checked, limits the list to show only assessments that have been requested..",
+        true,
+        order: 0 )]
+
+    [BooleanField( "Hide If No Active Requests",
+        "If enabled, the person can retake the test after the minimum days passes.",
         false,
         order: 1 )]
-    [BooleanField( "Hide If No Requests", "If enabled, the person can retake the test after the minimum days passes.",
+
+    [BooleanField( "Hide If No Requests",
+        "If enabled, the person can retake the test after the minimum days passes.",
         false,
         order: 2 )]
+
     [CodeEditorField( "Lava Template",
         "The lava template to use to format the entire block.  <span class='tip tip-lava'></span> <span class='tip tip-html'></span>",
         CodeEditorMode.Html,
         CodeEditorTheme.Rock,
         400,
         true,
-        @"<div class='panel panel-default container'><div class='panel-heading'>Assessments</div>
-{{ 'Lava' | Debug }}
-{% for assessmenttype in AssessmentTypes %}
-{% if assessmenttype.LastRequestObject.Status == 'Complete' %}
-       <div class='panel panel-success'>
-          <div class='panel-heading'> {{ assessmenttype.Title }}</br>
-          Completed: {{ assessmenttype.LastRequestObject.CompletedDate | Date:'M/d/yyyy'}} 
-    </br>
-    <a href='{{ assessmenttype.AssessmentResultsPath}}'>View Results</a>
-    </div>
-        </div>
-    {% elseif assessmenttype.LastRequestObject.Status == 'Pending' %}
-       <div class='panel panel-primary'>
-          <div class='panel-heading'> {{ assessmenttype.Title }}</br>
-        Requested: {{assessmenttype.LastRequestObject.Requester}} ({{ assessmenttype.LastRequestObject.RequestedDate | Date:'M/d/yyyy'}})</br>
-        <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
-    </div>
-        </div>
-    {% elseif assessmenttype.LastRequestObject.Status == 'Available' %}
-        <div class='panel panel-default'>
-          <div class='panel-heading'> {{ assessmenttype.Title }}</br>
-        {{ assessmenttype.LastRequestObject.Status}}</br>
-        <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
-            </div>
-                </div>
-    {% endif %}
-{% endfor %}
-</div>
+        @"<div class='panel panel-default container'>
+    <div class='panel-heading'>Assessments</div>
+        {% for assessmenttype in AssessmentTypes %}
+            {% if assessmenttype.LastRequestObject %}
+                {% if assessmenttype.LastRequestObject.Status == 'Complete' %}
+                    <div class='panel panel-success'>
+                        <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+                            Completed: {{ assessmenttype.LastRequestObject.CompletedDate | Date:'M/d/yyyy'}} </br>
+                            <a href='{{ assessmenttype.AssessmentResultsPath}}'>View Results</a>
+                        </div>
+                    </div>
+                {% elseif assessmenttype.LastRequestObject.Status == 'Pending' %}
+                    <div class='panel panel-primary'>
+                        <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+                            Requested: {{assessmenttype.LastRequestObject.Requester}} ({{ assessmenttype.LastRequestObject.RequestedDate | Date:'M/d/yyyy'}})</br>
+                            <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
+                        </div>
+                    </div>
+                {% endif %}   
+                {% else %}
+                    <div class='panel panel-default'>
+                        <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+                            Available</br>
+                            <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
+                        </div>
+                    </div>
+            {% endif %}
+        {% endfor %}
 </div>" )]
+
+#endregion
 
     public partial class AssessmentList : Rock.Web.UI.RockBlock
     {
@@ -105,7 +117,6 @@ namespace Rockweb.Blocks.Crm
             _hideIfNoRequests = GetAttributeValue( "HideIfNoRequests" ).AsBoolean();
 
             base.OnInit( e );
-       
         }
 
         /// <summary>
@@ -119,6 +130,7 @@ namespace Rockweb.Blocks.Crm
                 MergeLavaFields();
             }
         }
+
         #endregion
 
         #region Methods
@@ -131,17 +143,19 @@ namespace Rockweb.Blocks.Crm
         {
             lAssessments.Visible = true;
             nbAssessmentWarning.Visible = false;
-           
-            RockContext db = new RockContext();
 
-        var getallAssessmentTypes = db.AssessmentTypes.Select( a => new
+            // Gets Assessment types and assessments for each
+            RockContext rc = new RockContext();
+            AssessmentTypeService aService = new AssessmentTypeService( rc );
+            
+        var getallAssessmentTypes = aService.Queryable().Where(x=>x.IsActive == true).Select( a => new
             {
                 Title = a.Title,
                 AssessmentPath = a.AssessmentPath,
                 AssessmentResultsPath = a.AssessmentResultsPath,
                 LastRequestObject = a.Assessments
-                    .Where( r => r.PersonAlias.PersonId == CurrentPersonId)
-                    .OrderByDescending( b => b.CreatedDateTime )
+                    .Where( r => r.PersonAlias.Person.Id == CurrentPersonId)
+                    .OrderByDescending( b => b.CreatedDateTime)
                     .Select( r => new
                     {
                         RequestedDate = r.RequestedDateTime,
@@ -151,7 +165,7 @@ namespace Rockweb.Blocks.Crm
                     } ).FirstOrDefault()
             } ).ToList();
 
-            // Just playing out the logic before refactoring into something more isolated if possible
+            // Checks Current Request Types to use against the settings
             foreach ( var item in getallAssessmentTypes )
             {
                 if (item.LastRequestObject!=null && item.LastRequestObject.Status==AssessmentRequestStatus.Pending )
@@ -164,18 +178,37 @@ namespace Rockweb.Blocks.Crm
                     _areThereAnyRequests = true;
                 }
 
-                if ( item.LastRequestObject==null )
-                {
-                    ///Console.Write( "" ); is read only- need to find out if I can somehow check for null in LAVA
-                }
             }
-
-            var entirelistPreFilters = getallAssessmentTypes.OrderBy( x => x.LastRequestObject.Status );
-
+            
             // Resolve the text field merge fields
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, CurrentPerson );
 
-            // Checks for setting to hide if not active requests based on if there are any PENDING requests
+            CheckForRequestTypes();
+
+            // Shows all assessments if Only Show Requested is set to false and only requested if set to true, on the requester
+            if ( !_onlyShowRequested )
+            {
+                mergeFields.Add( "AssessmentTypes", getallAssessmentTypes );
+            }
+            else if ( _onlyShowRequested )
+            {
+                var onlyRequested = getallAssessmentTypes.Where( x => x.LastRequestObject != null )
+                    .Where(x=>x.LastRequestObject.Requester != null
+                    && x.LastRequestObject.Status == AssessmentRequestStatus.Pending );
+                
+                mergeFields.Add( "AssessmentTypes", onlyRequested );
+            }
+
+            lAssessments.Text = GetAttributeValue( LAVAATTRIBUTEKEY ).ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
+            
+        }
+
+        /// <summary>
+        /// Sets controls based on settings.
+        /// </summary>
+        private void CheckForRequestTypes()
+        {
+            // Checks for setting to hide if no active requests based on if there are any PENDING requests
             if ( _hideIfNoActiveRequests && !_areThereAnyActiveRequests )
             {
                 nbAssessmentWarning.Visible = true;
@@ -190,31 +223,8 @@ namespace Rockweb.Blocks.Crm
                 nbAssessmentWarning.Text = "There are no requests assigned to you.";
                 lAssessments.Visible = false;
             }
-
-            // Shows all assessments if Only Show Requested is set to false and only requested if set to true, on the requester
-            if ( !_onlyShowRequested )
-            {
-                mergeFields.Add( "AssessmentTypes", entirelistPreFilters );
-            }
-            else if ( _onlyShowRequested )
-            {
-                var test = entirelistPreFilters.Where( x => x.LastRequestObject.Requester != null );
-
-                // Only Show Requested
-                foreach ( var item in entirelistPreFilters )
-                {
-                    if ( item.LastRequestObject.Requester!=null )
-                    {
-
-                    }
-                }
-
-                mergeFields.Add( "AssessmentTypes", entirelistPreFilters );
-            }
-           
-            lAssessments.Text = GetAttributeValue( LAVAATTRIBUTEKEY ).ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
-            
         }
+
         #endregion
     }
 }
