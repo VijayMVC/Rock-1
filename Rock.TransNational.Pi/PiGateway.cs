@@ -1068,15 +1068,15 @@ namespace Rock.TransNational.Pi
         /// Gets the payments that have been processed for any scheduled transactions
         /// </summary>
         /// <param name="financialGateway">The financial gateway.</param>
-        /// <param name="startDate">The start date.</param>
-        /// <param name="endDate">The end date.</param>
+        /// <param name="startDateTime">The start date time.</param>
+        /// <param name="endDateTime">The end date time.</param>
         /// <param name="errorMessage">The error message.</param>
         /// <returns></returns>
-        public override List<Payment> GetPayments( FinancialGateway financialGateway, DateTime startDate, DateTime endDate, out string errorMessage )
+        public override List<Payment> GetPayments( FinancialGateway financialGateway, DateTime startDateTime, DateTime endDateTime, out string errorMessage )
         {
             QueryTransactionStatusRequest queryTransactionStatusRequest = new QueryTransactionStatusRequest
             {
-                DateRange = new QueryDateRange( startDate, endDate )
+                DateTimeRangeUTC = new QueryDateTimeRange( startDateTime, endDateTime )
             };
 
             var searchResult = this.SearchTransactions( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), queryTransactionStatusRequest );
@@ -1098,8 +1098,8 @@ namespace Rock.TransNational.Pi
                     AccountNumberMasked = transaction.PaymentMethodResponse.Card.MaskedCard,
                     Amount = transaction.Amount,
                     TransactionDateTime = transaction.CreatedDateTime.Value,
-
-                    GatewayScheduleId = transaction.PaymentMethod
+                    // Todo: Figure out how to associate the transaction with the schedule that created it.
+                    GatewayScheduleId = ""
                 };
 
                 paymentList.Add( payment );

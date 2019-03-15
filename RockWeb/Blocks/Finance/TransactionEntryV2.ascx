@@ -68,7 +68,7 @@
                         <Rock:NotificationBox ID="nbPromptForAmountsWarning" runat="server" NotificationBoxType="Validation" Visible="false" />
                         <Rock:BootstrapButton ID="btnGiveNow" runat="server" CssClass="btn btn-primary" Text="Give Now" OnClick="btnGiveNow_Click" />
 
-                        <a id="lHistoryBackButton" runat="server" class="btn btn-link">Previous</a>
+                        <a id="aHistoryBackButton" runat="server" class="btn btn-link">Previous</a>
                     </asp:Panel>
 
 

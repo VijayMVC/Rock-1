@@ -154,7 +154,7 @@ namespace RockWeb.Blocks.Finance
         "Scheduled Gifts Template",
         Key = AttributeKey.ScheduledTransactionsTemplate,
         Description = "The Lava Template to use to display Scheduled Gifts.",
-        DefaultValue = defaultScheduledTransactionsTemplate,
+        DefaultValue = DefaultScheduledTransactionsTemplate,
         EditorMode = CodeEditorMode.Lava,
         Category = AttributeCategory.ScheduleGifts,
         Order = 3 )]
@@ -403,7 +403,7 @@ namespace RockWeb.Blocks.Finance
     {
         #region constants
 
-        public const string DefaultFinishLavaTemplate = @"
+        protected const string DefaultFinishLavaTemplate = @"
 {% if Transaction.ScheduledTransactionDetails %}
     {% assign transactionDetails = Transaction.ScheduledTransactionDetails %}
 {% else %}
@@ -454,7 +454,7 @@ mission. We are so grateful for your commitment.</p>
 </dl>
 ";
 
-        public const string defaultScheduledTransactionsTemplate = @"
+        protected const string DefaultScheduledTransactionsTemplate = @"
 <h4>Scheduled {{ GiftTerm | Pluralize }}</h4>
 
 {% for scheduledTransaction in ScheduledTransactions %}
@@ -478,7 +478,7 @@ mission. We are so grateful for your commitment.</p>
             <div class='js-scheduled-details scheduled-details margin-l-lg'>
                 <div class='panel-body'>
                     {% for scheduledTransactionDetail in scheduledTransaction.ScheduledTransactionDetails %}
-                        <div class='account-details margin-l-sm'>
+                        <div class='account-details'>
                             <span class='scheduled-transaction-account control-label'>
                                 {{ scheduledTransactionDetail.Account.Name }}
                             </span>
@@ -488,12 +488,29 @@ mission. We are so grateful for your commitment.</p>
                             </span>
                         </div>
                     {% endfor %}
+                        
+                    <br />
+                    <span class='scheduled-transaction-payment-detail'>
+                        {% assign financialPaymentDetail = scheduledTransaction.FinancialPaymentDetail %}
 
-                    <div class='scheduled-details-actions'>
-                        {% if LinkedPages.ScheduledTransactionEditPage != '' %}
-                            <a href='{{ LinkedPages.ScheduledTransactionEditPage }}?ScheduledTransactionId={{ scheduledTransaction.Id }}' class='btn btn-sm btn-link'>Edit</a>
+                        {% if financialPaymentDetail.CurrencyTypeValue.Value != 'Credit Card' %}
+                            {{ financialPaymentDetail.CurrencyTypeValue.Value }}
+                        {% else %}
+                            {{ financialPaymentDetail.CreditCardTypeValue.Value }} {{ financialPaymentDetail.AccountNumberMasked }}
                         {% endif %}
-                        <a class='btn btn-sm btn-link' onclick=""{{ scheduledTransaction.Id | Postback:'DeleteScheduledTransaction' }}"">Delete</a>
+                    </span>
+                    <br />
+                    
+                    {% if scheduledTransaction.NextPaymentDate != null %}
+                        Next Gift: {{ scheduledTransaction.NextPaymentDate | Date:'sd' }}.
+                    {% endif %}
+
+
+                    <div class='scheduled-details-actions margin-t-md'>
+                        {% if LinkedPages.ScheduledTransactionEditPage != '' %}
+                            <a href='{{ LinkedPages.ScheduledTransactionEditPage }}?ScheduledTransactionId={{ scheduledTransaction.Id }}'>Edit</a>
+                        {% endif %}
+                        <a class='margin-l-sm' onclick=""{{ scheduledTransaction.Id | Postback:'DeleteScheduledTransaction' }}"">Delete</a>                    
                     </div>
                 </div>
             </div>                
@@ -762,9 +779,9 @@ mission. We are so grateful for your commitment.</p>
         #region helper classes
 
         /// <summary>
-        /// Helper object for data passed via the request string.
+        /// Helper object for account options passed via the request string using <see cref="AttributeKey.AllowAccountOptionsInURL"/>
         /// </summary>
-        protected class ParameterAccountOption
+        private class ParameterAccountOption
         {
             public int AccountId { get; set; }
 
@@ -924,6 +941,7 @@ mission. We are so grateful for your commitment.</p>
                             {
                                 DeleteScheduledTransaction( scheduledTransactionId.Value );
                             }
+
                             break;
                     }
                 }
@@ -938,6 +956,20 @@ mission. We are so grateful for your commitment.</p>
             if ( !LoadGatewayOptions() )
             {
                 return;
+            }
+
+            aHistoryBackButton.Visible = false;
+            if ( this.GetAttributeValue( AttributeKey.EnableInitialBackButton ).AsBoolean() )
+            {
+                if ( this.Request.UrlReferrer != null )
+                {
+                    aHistoryBackButton.HRef = this.Request.UrlReferrer.ToString();
+                    aHistoryBackButton.Visible = true;
+                }
+                else
+                {
+                    aHistoryBackButton.HRef = "#";
+                }
             }
 
             var allowAccountsInUrl = this.GetAttributeValue( AttributeKey.AllowAccountOptionsInURL ).AsBoolean();
@@ -1040,7 +1072,6 @@ mission. We are so grateful for your commitment.</p>
 
             if ( this.GetAttributeValue( AttributeKey.ShowScheduledTransactions ).AsBoolean() )
             {
-                
                 pnlScheduledTransactions.Visible = true;
                 BindScheduledTransactions();
             }
@@ -1154,26 +1185,6 @@ mission. We are so grateful for your commitment.</p>
         #region Gateway Help Related
 
         /// <summary>
-        /// Handles the Click event of the btnGatewayConfigure control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnGatewayConfigure_Click( object sender, EventArgs e )
-        {
-            // TODO
-        }
-
-        /// <summary>
-        /// Handles the Click event of the btnGatewayLearnMore control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnGatewayLearnMore_Click( object sender, EventArgs e )
-        {
-            // TODO
-        }
-
-        /// <summary>
         /// Handles the ItemDataBound event of the rptInstalledGateways control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
@@ -1227,6 +1238,11 @@ mission. We are so grateful for your commitment.</p>
             if ( this.FinancialGatewayComponent.TypeGuid == testGatewayGuid )
             {
                 ShowConfigurationMessage( NotificationBoxType.Warning, "Testing", "You are using the Test Financial Gateway. No actual amounts will be charged to your card or bank account." );
+            }
+            else if ( ( this.FinancialGatewayComponent is IHostedGatewayComponent ) == false )
+            {
+                ShowConfigurationMessage( NotificationBoxType.Warning, "Unsupported Gateway", "This block only support Gateways that have a hosted payment interface." );
+                return false;
             }
             else
             {
@@ -1320,7 +1336,7 @@ mission. We are so grateful for your commitment.</p>
             }
 
             var mergeFields = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson, new CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
-            mergeFields.Add( "GiftTerm", ( this.GetAttributeValue( AttributeKey.GiftTerm ) ?? "Gift" ) );
+            mergeFields.Add( "GiftTerm", this.GetAttributeValue( AttributeKey.GiftTerm ) ?? "Gift" );
 
             Dictionary<string, object> linkedPages = new Dictionary<string, object>();
             linkedPages.Add( "ScheduledTransactionEditPage", LinkedPageRoute( AttributeKey.ScheduledTransactionEditPage ) );
@@ -1335,7 +1351,6 @@ mission. We are so grateful for your commitment.</p>
             givingIdList.Add( targetPersonGivingId );
             var scheduledTransactionList = financialScheduledTransactionService.Queryable()
                 .Where( a => givingIdList.Contains( a.AuthorizedPersonAlias.Person.GivingId ) && a.IsActive == true )
-                .AsNoTracking()
                 .ToList();
 
             foreach ( var scheduledTransaction in scheduledTransactionList )
@@ -1351,49 +1366,9 @@ mission. We are so grateful for your commitment.</p>
             scheduledTransactionList = scheduledTransactionList.OrderByDescending( a => a.NextPaymentDate ).ToList();
 
             mergeFields.Add( "ScheduledTransactions", scheduledTransactionList );
-            mergeFields.Add( "ScheduledTransactionEditURL", "" );
+
             var scheduledTransactionsTemplate = this.GetAttributeValue( AttributeKey.ScheduledTransactionsTemplate );
             lScheduledTransactionsHTML.Text = scheduledTransactionsTemplate.ResolveMergeFields( mergeFields ).ResolveClientIds( upnlContent.ClientID );
-        }
-
-        /// <summary>
-        /// Handles the ItemDataBound event of the rptScheduledTransactions control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
-        protected void rptScheduledTransactions_ItemDataBound( object sender, RepeaterItemEventArgs e )
-        {
-            FinancialScheduledTransaction financialScheduledTransaction = e.Item.DataItem as FinancialScheduledTransaction;
-            if ( financialScheduledTransaction == null )
-            {
-                return;
-            }
-
-            HiddenField hfScheduledTransactionId = e.Item.FindControl( "hfScheduledTransactionId" ) as HiddenField;
-            Literal lScheduledTransactionTitle = e.Item.FindControl( "lScheduledTransactionTitle" ) as Literal;
-            Literal lScheduledTransactionAmountTotal = e.Item.FindControl( "lScheduledTransactionAmountTotal" ) as Literal;
-            hfScheduledTransactionId.Value = financialScheduledTransaction.Id.ToString();
-            lScheduledTransactionTitle.Text = financialScheduledTransaction.TransactionFrequencyValue.Value;
-            lScheduledTransactionAmountTotal.Text = financialScheduledTransaction.TotalAmount.FormatAsCurrency();
-
-            Repeater rptScheduledTransactionAccounts = e.Item.FindControl( "rptScheduledTransactionAccounts" ) as Repeater;
-            rptScheduledTransactionAccounts.DataSource = financialScheduledTransaction.ScheduledTransactionDetails.ToList();
-            rptScheduledTransactionAccounts.DataBind();
-        }
-
-        /// <summary>
-        /// Handles the ItemDataBound event of the rptScheduledTransactionAccounts control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
-        protected void rptScheduledTransactionAccounts_ItemDataBound( object sender, RepeaterItemEventArgs e )
-        {
-            FinancialScheduledTransactionDetail financialScheduledTransactionDetail = e.Item.DataItem as FinancialScheduledTransactionDetail;
-            Literal lScheduledTransactionAccountName = e.Item.FindControl( "lScheduledTransactionAccountName" ) as Literal;
-            lScheduledTransactionAccountName.Text = financialScheduledTransactionDetail.Account.ToString();
-
-            Literal lScheduledTransactionAmount = e.Item.FindControl( "lScheduledTransactionAmount" ) as Literal;
-            lScheduledTransactionAmount.Text = financialScheduledTransactionDetail.Amount.FormatAsCurrency();
         }
 
         /// <summary>

@@ -251,8 +251,6 @@ namespace Rock.Model
             var batchSummary = new Dictionary<Guid, List<Decimal>>();
             var initialControlAmounts = new Dictionary<Guid, decimal>();
 
-            var gatewayComponent = gateway.GetGatewayComponent();
-
             var newTransactions = new List<FinancialTransaction>();
             var failedPayments = new List<FinancialTransaction>();
 
@@ -494,11 +492,14 @@ namespace Rock.Model
                             }
                             else
                             {
+                                // TODO: NO!
+
                                 batch.Transactions.Add( transaction );
                             }
 
                             batch.ControlAmount += transaction.TotalAmount;
 
+                            // TODO: NO!
                             batch.Transactions.Add( transaction );
 
                             if ( receiptEmail.HasValue && txnAmount > 0.0M )

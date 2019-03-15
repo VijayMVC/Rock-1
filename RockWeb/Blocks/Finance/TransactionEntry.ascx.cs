@@ -461,6 +461,13 @@ TransactionAccountDetails: [
                 return;
             }
 
+            if ( ( _ccGatewayComponent is IHostedGatewayComponent ) || _achGatewayComponent is IHostedGatewayComponent )
+            {
+                SetPage( 0 );
+                ShowMessage( NotificationBoxType.Danger, "Configuration Error", "Unsupported Gateway. This block does not support Gateways that have a hosted payment interface." );
+                return;
+            }
+
             var testGatewayGuid = Rock.SystemGuid.EntityType.FINANCIAL_GATEWAY_TEST_GATEWAY.AsGuid();
             if ( ( _ccGatewayComponent != null && _ccGatewayComponent.TypeGuid == testGatewayGuid ) ||
                 ( _achGatewayComponent != null && _achGatewayComponent.TypeGuid == testGatewayGuid ) )
@@ -2898,6 +2905,7 @@ TransactionAccountDetails: [
                 }
             }
 
+            // Todo: performance
             batch.Transactions.Add( transaction );
 
             rockContext.SaveChanges();

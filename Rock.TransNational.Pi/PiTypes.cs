@@ -1503,7 +1503,7 @@ namespace Rock.TransNational.Pi
         /// The next bill date.
         /// </value>
         [JsonProperty( "next_bill_date" )]
-        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
+        [JsonConverter( typeof( PiGatewayUTCIsoDateConverter ) )]
         public DateTime? NextBillDateUTC { get; set; }
     }
 
@@ -1643,7 +1643,7 @@ namespace Rock.TransNational.Pi
         /// The next bill date.
         /// </value>
         [JsonProperty( "next_bill_date" )]
-        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
+        [JsonConverter( typeof( PiGatewayUTCIsoDateConverter ) )]
         public DateTime? NextBillDateUTC { get; set; }
 
         /// <summary>
@@ -1718,7 +1718,7 @@ namespace Rock.TransNational.Pi
         /// The date range.
         /// </value>
         [JsonProperty( "created_at", NullValueHandling = NullValueHandling.Ignore )]
-        public QueryDateRange DateRange { get; set; }
+        public QueryDateTimeRange DateTimeRangeUTC { get; set; }
 
         /// <summary>
         /// Maximum records to return (0-100, optional)
@@ -1794,17 +1794,17 @@ namespace Rock.TransNational.Pi
     /// <summary>
     /// Searches by created_at between the provided start_date and end_date. Dates in UTC "YYYY-MM-DDTHH:II:SSZ"
     /// </summary>
-    public class QueryDateRange
+    public class QueryDateTimeRange
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QueryDateRange"/> class.
+        /// Initializes a new instance of the <see cref="QueryDateRange" /> class.
         /// </summary>
-        /// <param name="startDate">The start date.</param>
-        /// <param name="endDate">The end date.</param>
-        public QueryDateRange( DateTime? startDate, DateTime? endDate )
+        /// <param name="startDateTime">The start date time.</param>
+        /// <param name="endDateTime">The end date time.</param>
+        public QueryDateTimeRange( DateTime? startDateTime, DateTime? endDateTime )
         {
-            UTCStartDate = startDate?.ToUniversalTime();
-            UTCEndDate = endDate?.ToUniversalTime();
+            UTCStartDateTime = startDateTime?.ToUniversalTime();
+            UTCEndDateTime = endDateTime?.ToUniversalTime();
         }
 
         /// <summary>
@@ -1813,9 +1813,9 @@ namespace Rock.TransNational.Pi
         /// <value>
         /// The start date.
         /// </value>
-        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
+        [JsonConverter( typeof( PiGatewayUTCIsoDateTimeConverter ) )]
         [JsonProperty( "start_date" )]
-        public DateTime? UTCStartDate { get; set; }
+        public DateTime? UTCStartDateTime { get; set; }
 
         /// <summary>
         /// Gets or sets the end date (in UTC time).
@@ -1823,9 +1823,9 @@ namespace Rock.TransNational.Pi
         /// <value>
         /// The end date.
         /// </value>
-        [JsonConverter( typeof( RockJsonIsoDateConverter ), DateTimeKind.Utc )]
+        [JsonConverter( typeof( PiGatewayUTCIsoDateTimeConverter ) )]
         [JsonProperty( "end_date" )]
-        public DateTime? UTCEndDate { get; set; }
+        public DateTime? UTCEndDateTime { get; set; }
     }
 
     #endregion
@@ -2202,6 +2202,16 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "settled_at" )]
         public DateTime? SettledDateTime { get; set; }
+
+        /// <summary>
+        /// Newtonsoft.Json.JsonExtensionData instructs the Newtonsoft.Json.JsonSerializer to deserialize properties with no
+        /// matching class member into the specified collection
+        /// </summary>
+        /// <value>
+        /// The other data.
+        /// </value>
+        [Newtonsoft.Json.JsonExtensionData( ReadData = true, WriteData = false )]
+        public IDictionary<string, Newtonsoft.Json.Linq.JToken> _additionalData { get; set; }
     }
 
     #endregion
@@ -2209,20 +2219,32 @@ namespace Rock.TransNational.Pi
     #region Rock Wrapper Types
 
     /// <summary>
-    /// ToDo: Move this to Rock.Utility
+    /// see DateFormat spec https://sandbox.gotnpgateway.com/docs/api/#create-a-subscription
+    /// </summary>
+    /// <seealso cref="Rock.TransNational.Pi.PiGatewayUTCIsoDateTimeConverter" />
+    internal class PiGatewayUTCIsoDateConverter : PiGatewayUTCIsoDateTimeConverter
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PiGatewayUTCIsoDateConverter"/> class.
+        /// </summary>
+        public PiGatewayUTCIsoDateConverter()
+        {
+            DateTimeFormat = "yyyy-MM-dd";
+        }
+    }
+
+    /// <summary>
+    /// see DateFormats specs from https://sandbox.gotnpgateway.com/docs/api/#query-transactions
     /// </summary>
     /// <seealso cref="Newtonsoft.Json.Converters.IsoDateTimeConverter" />
-    public class RockJsonIsoDateConverter : Newtonsoft.Json.Converters.IsoDateTimeConverter
+    internal class PiGatewayUTCIsoDateTimeConverter : Newtonsoft.Json.Converters.IsoDateTimeConverter
     {
-        private DateTimeKind _dateTimeKind;
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="RockJsonIsoDateConverter"/> class.
+        /// Initializes a new instance of the <see cref="PiGatewayUTCIsoDateTimeConverter"/> class.
         /// </summary>
-        public RockJsonIsoDateConverter( DateTimeKind dateTimeKind ) : base()
+        public PiGatewayUTCIsoDateTimeConverter() : base()
         {
-            this._dateTimeKind = dateTimeKind;
-            this.DateTimeFormat = "yyyy-MM-dd";
+            DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
         }
 
         /// <summary>
@@ -2246,7 +2268,7 @@ namespace Rock.TransNational.Pi
                 {
                     // since we are dealing with a date (without time) make sure the returned date has its DateTimeKind set
                     // For example, if we are expecting the date to be in UTC, set the DateTimeKind to UTC so any date math on it does the right thing
-                    result = DateTime.SpecifyKind( resultAsDateTime.Value, _dateTimeKind );
+                    result = DateTime.SpecifyKind( resultAsDateTime.Value, DateTimeKind.Utc );
                 }
             }
 
