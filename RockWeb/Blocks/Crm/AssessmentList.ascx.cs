@@ -30,28 +30,31 @@ using Rock.Web.UI.Controls;
 
 namespace Rockweb.Blocks.Crm
 {
-    /// <summary>
-    /// Lists all avalable assesments for the individual.
-    /// </summary>
+    /// <summary>Lists all avalable assesments for the individual.</summary>
     [DisplayName( "Assessment List" )]
     [Category( "CRM" )]
     [Description( "Allows you to view and take any available assessments." )]
 
-    [BooleanField( "Only Show Requested", "When checked, limits the list to show only assessments that have been requested..", true, order: 0 )]
-    [BooleanField( "Hide If No Active Requests", "If enabled, the person can retake the test after the minimum days passes.", false, order: 1 )]
-    [BooleanField( "Hide If No Requests", "If enabled, the person can retake the test after the minimum days passes.", false, order: 2 )]
-
-
-    [CodeEditorField( "Lava Template", "The lava template to use to format the entire block.  <span class='tip tip-lava'></span> <span class='tip tip-html'></span>", CodeEditorMode.Html, CodeEditorTheme.Rock, 400, true, @"
-    <div class='panel panel-default container'>
-      <div class='panel-heading'>Assessments</div>
+    [BooleanField( "Only Show Requested", "When checked, limits the list to show only assessments that have been requested..",
+        true, order: 0 )]
+    [BooleanField( "Hide If No Active Requests", "If enabled, the person can retake the test after the minimum days passes.",
+        false,
+        order: 1 )]
+    [BooleanField( "Hide If No Requests", "If enabled, the person can retake the test after the minimum days passes.",
+        false,
+        order: 2 )]
+    [CodeEditorField( "Lava Template",
+        "The lava template to use to format the entire block.  <span class='tip tip-lava'></span> <span class='tip tip-html'></span>",
+        CodeEditorMode.Html,
+        CodeEditorTheme.Rock,
+        400,
+        true,
+        @"<div class='panel panel-default container'><div class='panel-heading'>Assessments</div>
 {{ 'Lava' | Debug }}
 {% for assessmenttype in AssessmentTypes %}
- 
 {% if assessmenttype.LastRequestObject.Status == 'Complete' %}
        <div class='panel panel-success'>
           <div class='panel-heading'> {{ assessmenttype.Title }}</br>
-        
           Completed: {{ assessmenttype.LastRequestObject.CompletedDate | Date:'M/d/yyyy'}} 
     </br>
     <a href='{{ assessmenttype.AssessmentResultsPath}}'>View Results</a>
@@ -61,7 +64,6 @@ namespace Rockweb.Blocks.Crm
        <div class='panel panel-primary'>
           <div class='panel-heading'> {{ assessmenttype.Title }}</br>
         Requested: {{assessmenttype.LastRequestObject.Requester}} ({{ assessmenttype.LastRequestObject.RequestedDate | Date:'M/d/yyyy'}})</br>
-        
         <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
     </div>
         </div>
@@ -76,11 +78,13 @@ namespace Rockweb.Blocks.Crm
 {% endfor %}
 </div>
 </div>" )]
+
     public partial class AssessmentList : Rock.Web.UI.RockBlock
     {
         private const string LAVAATTRIBUTEKEY = "LavaTemplate";
 
         #region Control Events
+
         private bool _onlyShowRequested = true;
         private bool _hideIfNoActiveRequests = false;
         private bool _hideIfNoRequests = false;
@@ -94,10 +98,10 @@ namespace Rockweb.Blocks.Crm
             // show hide requested
             _onlyShowRequested = GetAttributeValue( "OnlyShowRequested" ).AsBoolean();
 
-            //hide if no active requests
+            // hide if no active requests
             _hideIfNoActiveRequests = GetAttributeValue( "HideIfNoActiveRequests" ).AsBoolean();
 
-            //hide if no requests
+            // hide if no requests
             _hideIfNoRequests = GetAttributeValue( "HideIfNoRequests" ).AsBoolean();
 
             base.OnInit( e );
@@ -147,7 +151,7 @@ namespace Rockweb.Blocks.Crm
                     } ).FirstOrDefault()
             } ).ToList();
 
-            ///Just playing out the logic before refactoring into something more isolated if possible
+            // Just playing out the logic before refactoring into something more isolated if possible
             foreach ( var item in getallAssessmentTypes )
             {
                 if (item.LastRequestObject!=null && item.LastRequestObject.Status==AssessmentRequestStatus.Pending )
@@ -171,7 +175,7 @@ namespace Rockweb.Blocks.Crm
             // Resolve the text field merge fields
             var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, CurrentPerson );
 
-            //Checks for setting to hide if not active requests based on if there are any PENDING requests
+            // Checks for setting to hide if not active requests based on if there are any PENDING requests
             if ( _hideIfNoActiveRequests && !_areThereAnyActiveRequests )
             {
                 nbAssessmentWarning.Visible = true;
@@ -179,7 +183,7 @@ namespace Rockweb.Blocks.Crm
                 lAssessments.Visible = false;
             }
 
-            //Checks for setting to hide if no requests based on if there are any Requesters associated with the assessments
+            // Checks for setting to hide if no requests based on if there are any Requesters associated with the assessments
             if ( _hideIfNoRequests && !_areThereAnyRequests )
             {
                 nbAssessmentWarning.Visible = true;
@@ -187,7 +191,7 @@ namespace Rockweb.Blocks.Crm
                 lAssessments.Visible = false;
             }
 
-            //Shows all assessments if Only Show Requested is set to false and only requested if set to true, on the requester
+            // Shows all assessments if Only Show Requested is set to false and only requested if set to true, on the requester
             if ( !_onlyShowRequested )
             {
                 mergeFields.Add( "AssessmentTypes", entirelistPreFilters );
@@ -195,8 +199,8 @@ namespace Rockweb.Blocks.Crm
             else if ( _onlyShowRequested )
             {
                 var test = entirelistPreFilters.Where( x => x.LastRequestObject.Requester != null );
-                ///Only Show Requested
-                ///
+
+                // Only Show Requested
                 foreach ( var item in entirelistPreFilters )
                 {
                     if ( item.LastRequestObject.Requester!=null )

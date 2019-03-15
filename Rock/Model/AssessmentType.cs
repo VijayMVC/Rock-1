@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -36,8 +37,8 @@ namespace Rock.Model
         #region Entity Properties
 
         /// <summary>
-        ///Title  
-        /// /// </summary>
+        /// Gets or sets the Title of the <see cref="Rock.Model.AssessmentType"/>  
+        /// </summary>
         /// <value>
         /// A <see cref="System.String"/> <c>false</c>.
         /// </value>
@@ -47,8 +48,8 @@ namespace Rock.Model
         public string Title { get; set; }
 
         /// <summary>
-        ///Description  
-        /// /// </summary>
+        /// Gets or sets the Description of the <see cref="Rock.Model.AssessmentType"/>
+        /// </summary>
         /// <value>
         /// A <see cref="System.String"/> <c>false</c>.
         /// </value>
@@ -59,8 +60,8 @@ namespace Rock.Model
         public string Description { get; set; }
 
         /// <summary>
-        ///AssessmentResultsPath  
-        /// /// </summary>
+        /// Gets or sets the AssessmentPath of the <see cref="Rock.Model.AssessmentType"/>  
+        /// </summary>
         /// <value>
         /// A <see cref="System.String"/> <c>false</c>.
         /// </value>
@@ -70,8 +71,8 @@ namespace Rock.Model
         public string AssessmentPath { get; set; }
 
         /// <summary>
-        ///AssessmentResultsPath  
-        /// /// </summary>
+        /// Gets or sets the AssessmentResultsPath of the AssessmentType.
+        /// </summary>
         /// <value>
         /// A <see cref="System.String"/> <c>false</c>.
         /// </value>
@@ -80,8 +81,8 @@ namespace Rock.Model
         public string AssessmentResultsPath { get; set; }
 
         /// <summary>
-        ///IsActive  
-        /// /// </summary>
+        /// Gets or sets the IsActive flag for the Assessment Type.
+        /// </summary>
         /// <value>
         /// A <see cref="System.Boolean"/> <c>false</c>.
         /// </value>
@@ -90,8 +91,8 @@ namespace Rock.Model
         public Boolean IsActive { get; set; }
 
         /// <summary>
-        ///RequiresRequest  
-        /// /// </summary>
+        /// Gets or sets the RequiresRequest flag for the Assessment Type.
+        /// </summary>
         /// <value>
         /// A <see cref="System.Boolean"/> <c>false</c>.
         /// </value>
@@ -100,8 +101,8 @@ namespace Rock.Model
         public Boolean RequiresRequest { get; set; }
 
         /// <summary>
-        ///MinimumDaysToRetake
-        /// /// </summary>
+        /// Gets or sets the number of days given for the Assessment Type to be retaken.
+        /// </summary>
         /// <value>
         /// A <see cref="System.int"/> <c>false</c>.
         /// </value>
@@ -109,14 +110,13 @@ namespace Rock.Model
         public int MinimumDaysToRetake { get; set; }
 
         /// <summary>
-        ///ValidDuration
-        /// /// </summary>
+        /// Gets or sets the number for valid duration of the Assessment Type.
+        /// </summary>
         /// <value>
         /// A <see cref="System.int"/> <c>false</c>.
         /// </value>
         [DataMember]
         public int ValidDuration { get; set; }
-
 
         /// <summary>
         /// Gets or sets a flag indicating if this AssessmentType is a part of the Rock core system/framework. This property is required.
@@ -133,7 +133,7 @@ namespace Rock.Model
         #region Virtual Properties
 
         /// <summary>
-        ///Collection of Assessments for each Assessment Type
+        /// Gets or sets the Collection of Assessments for each Assessment Type
         /// </summary>
         [DataMember]
         public virtual ICollection<Assessment> Assessments

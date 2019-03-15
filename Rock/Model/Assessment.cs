@@ -34,8 +34,8 @@ namespace Rock.Model
         #region Entity Properties
 
         /// <summary>
-        ///PersonAliasID
-        /// /// </summary>
+        /// Gets or sets the Id of the person <see cref="Rock.Model.Person"/> who is associated with the assesment.
+        /// </summary>
         /// <value>
         /// A <see cref="System.int"/> <c>false</c>.
         /// </value>
@@ -44,8 +44,8 @@ namespace Rock.Model
         public int PersonAliasId { get; set; }
 
         /// <summary>
-        ///AssessmentTypeID
-        /// /// </summary>
+        /// Gets or sets the Id of the <see cref="Rock.Model.AssessmentType"/>
+        ///  </summary>
         /// <value>
         /// A <see cref="System.int"/> <c>false</c>.
         /// </value>
@@ -54,8 +54,8 @@ namespace Rock.Model
         public int AssessmentTypeId { get; set; }
 
         /// <summary>
-        ///RequestorPersonAliasID
-        /// /// </summary>
+        /// Gets or sets the RequesterPersonAliasId of the <see cref="Rock.Model.Person"/> that requested the assessment.
+        /// </summary>
         /// <value>
         /// A <see cref="System.int"/> <c>false</c>.
         /// </value>
@@ -63,8 +63,8 @@ namespace Rock.Model
         public int? RequesterPersonAliasId { get; set; }
 
         /// <summary>
-        ///RequestedDateTime
-        /// /// </summary>
+        /// Gets or sets the date when the assessment was requested.
+        /// </summary>
         /// <value>
         /// A <see cref="System.DateTime"/> <c>false</c>.
         /// </value>
@@ -72,8 +72,8 @@ namespace Rock.Model
         public DateTime? RequestedDateTime { get; set; }
 
         /// <summary>
-        ///RequestedDueDate
-        /// /// </summary>
+        /// Gets or sets the date of the requested due date.
+        ///  </summary>
         /// <value>
         /// A <see cref="System.DateTime"/> <c>false</c>.
         /// </value>
@@ -81,8 +81,8 @@ namespace Rock.Model
         public DateTime? RequestedDueDate { get; set; }
 
         /// <summary>
-        ///Status
-        /// /// </summary>
+        /// Gets or sets the enum of the assessment status.
+        /// </summary>
         /// <value>
         /// A <see cref="System.Enum"/> <c>false</c>.
         /// </value>
@@ -91,8 +91,8 @@ namespace Rock.Model
         public AssessmentRequestStatus Status { get; set; }
 
         /// <summary>
-        ///CompletedDateTime 
-        /// /// </summary>
+        /// Gets or sets the date of when the Assessment was completed.
+        /// </summary>
         /// <value>
         /// A <see cref="System.DateTime"/> <c>false</c>.
         /// </value>
@@ -100,19 +100,17 @@ namespace Rock.Model
         public DateTime? CompletedDateTime { get; set; }
 
         /// <summary>
-        ///AssessmentResultData  
-        /// /// </summary>
+        /// Gets or sets the result data for the Assessment taken.
+        /// </summary>
         /// <value>
         /// A <see cref="System.String"/> <c>false</c>.
         /// </value>
-        [StringLength( 100, MinimumLength = 3 )]
-        [MaxLength]
         [DataMember]
         public string AssessmentResultData { get; set; }
 
         /// <summary>
-        ///LastReminderDateTime  
-        /// /// </summary>
+        /// Gets or sets the result last reminder date.
+        /// </summary>
         /// <value>
         /// A <see cref="System.DateTime"/> <c>false</c>.
         /// </value>
@@ -133,7 +131,7 @@ namespace Rock.Model
         public virtual AssessmentType AssessmentType { get; set; }
 
         /// <summary>
-        /// Gets or sets the person alias.
+        /// Gets or sets the person alias <see cref="Rock.Model.Person"/> associated with the Assessment.
         /// </summary>
         /// <value>
         /// The person alias.
@@ -142,10 +140,10 @@ namespace Rock.Model
         public virtual PersonAlias PersonAlias { get; set; }
 
         /// <summary>
-        /// Gets or sets the requester person alias.
+        /// Gets or sets the person alias <see cref="Rock.Model.Person"/> requesting the Assessment.
         /// </summary>
         /// <value>
-        /// The person alias.
+        /// The person alias.<see cref="Rock.Model.Person"/>
         /// </value>
         [LavaInclude]
         public virtual PersonAlias RequesterPersonAlias { get; set; }
@@ -179,7 +177,7 @@ namespace Rock.Model
 
     #region Enumerations
     /// <summary>
-    ///Enums for Assessment Status
+    /// Enums <see cref="System.Enum"/> for Assessment <see cref="Rock.Model.Assessment"/>Status
     /// </summary>
     public enum AssessmentRequestStatus
     {
