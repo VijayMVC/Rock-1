@@ -100,8 +100,6 @@ namespace Rockweb.Blocks.Crm
 
     public partial class AssessmentList : Rock.Web.UI.RockBlock
     {
-        private const string LAVAATTRIBUTEKEY = "LavaTemplate";
-
         #region Control Events
 
         private bool _onlyShowRequested = true;
@@ -161,7 +159,7 @@ namespace Rockweb.Blocks.Crm
                 AssessmentPath = a.AssessmentPath,
                 AssessmentResultsPath = a.AssessmentResultsPath,
                 LastRequestObject = a.Assessments
-                    .Where( r => r.PersonAlias.Person.Id == CurrentPersonId)
+                    .Where( r => r.PersonAlias.Person.Id == CurrentPersonId )
                     .OrderByDescending( b => b.CreatedDateTime)
                     .Select( r => new
                     {
@@ -170,7 +168,7 @@ namespace Rockweb.Blocks.Crm
                         Status = r.Status,
                         Requester = r.RequesterPersonAlias.Person.NickName + " " + r.RequesterPersonAlias.Person.LastName
                     } ).OrderBy(x=>x.Status).FirstOrDefault()
-            } ).OrderByDescending( x=>x.LastRequestObject.Status).ToList();
+            } ).OrderByDescending( x=>x.LastRequestObject.Status ).ToList();
             
             // Checks Current Request Types to use against the settings
             foreach ( var item in getallAssessmentTypes )
@@ -206,7 +204,7 @@ namespace Rockweb.Blocks.Crm
                 mergeFields.Add( "AssessmentTypes", onlyRequested );
             }
 
-            lAssessments.Text = GetAttributeValue( LAVAATTRIBUTEKEY ).ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
+            lAssessments.Text = GetAttributeValue( "LavaTemplate" ).ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
             
         }
 
