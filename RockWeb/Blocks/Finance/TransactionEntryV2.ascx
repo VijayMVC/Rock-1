@@ -12,7 +12,7 @@
         <%-- Friendly Help if there is no Gateway configured --%>
         <asp:Panel ID="pnlGatewayHelp" runat="server" Visible="false">
             <h4>Welcome to Rock's On-line Giving Experience</h4>
-            <p>There is currently no gateway configured. Below are a list of gateways installed on your server. You can also add additional gateways through the Rock Shop.</p>
+            <p>There is currently no gateway configured. Below are a list of supported gateways installed on your server. You can also add additional gateways through the Rock Shop.</p>
             <asp:Repeater ID="rptInstalledGateways" runat="server" OnItemDataBound="rptInstalledGateways_ItemDataBound">
                 <ItemTemplate>
                     <div class="panel panel-block">

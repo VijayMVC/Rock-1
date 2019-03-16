@@ -666,11 +666,17 @@ mission. We are so grateful for your commitment.</p>
         public static class AttributeCategory
         {
             public const string None = "";
+
             public const string ScheduleGifts = "Scheduled Gifts";
+
             public const string PaymentComments = "Payment Comments";
+
             public const string TextOptions = "Text Options";
+
             public const string Advanced = "Advanced";
+
             public const string EmailTemplates = "Email Templates";
+
             public const string PersonOptions = "Person Options";
         }
 
@@ -1223,7 +1229,7 @@ mission. We are so grateful for your commitment.</p>
         /// </summary>
         private bool LoadGatewayOptions()
         {
-            if ( this.FinancialGatewayComponent == null )
+            if ( this.FinancialGateway == null )
             {
                 ShowGatewayHelp();
                 return false;
@@ -1233,16 +1239,20 @@ mission. We are so grateful for your commitment.</p>
                 HideGatewayHelp();
             }
 
+            // get the FinancialGateway's GatewayComponent so we can show a warning if they have an unsupported gateway.
+            bool unsupportedGateway = ( FinancialGateway.GetGatewayComponent() is IHostedGatewayComponent ) == false;
+
             var testGatewayGuid = Rock.SystemGuid.EntityType.FINANCIAL_GATEWAY_TEST_GATEWAY.AsGuid();
 
-            if ( this.FinancialGatewayComponent.TypeGuid == testGatewayGuid )
-            {
-                ShowConfigurationMessage( NotificationBoxType.Warning, "Testing", "You are using the Test Financial Gateway. No actual amounts will be charged to your card or bank account." );
-            }
-            else if ( ( this.FinancialGatewayComponent is IHostedGatewayComponent ) == false )
+            if ( unsupportedGateway )
             {
                 ShowConfigurationMessage( NotificationBoxType.Warning, "Unsupported Gateway", "This block only support Gateways that have a hosted payment interface." );
+                pnlTransactionEntry.Visible = false;
                 return false;
+            }
+            else if ( this.FinancialGatewayComponent.TypeGuid == testGatewayGuid )
+            {
+                ShowConfigurationMessage( NotificationBoxType.Warning, "Testing", "You are using the Test Financial Gateway. No actual amounts will be charged to your card or bank account." );
             }
             else
             {
@@ -1430,6 +1440,7 @@ mission. We are so grateful for your commitment.</p>
             if ( GetAttributeValue( AttributeKey.AllowImpersonation ).AsBoolean() )
             {
                 string personKey = PageParameter( PageParameterKey.Person );
+
                 if ( personKey.IsNotNullOrWhiteSpace() )
                 {
                     var incrementKeyUsage = !this.IsPostBack;

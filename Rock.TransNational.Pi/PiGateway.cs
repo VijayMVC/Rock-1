@@ -43,12 +43,13 @@ namespace Rock.TransNational.Pi
         Order = 2
         )]
 
-    [TextField(
-        "Gateway URL",
-        Key = AttributeKey.GatewayUrl,
-        Description = "The base URL of the gateway. For example: https://app.gotnpgateway.com for production or https://sandbox.gotnpgateway.com for testing",
-        Order = 3
-        )]
+    [CustomRadioListField( "Mode",
+        Key = AttributeKey.Mode,
+        Description = "Set to Sandbox mode to use the sandbox test gateway instead of the production app gateway",
+        ListSource = "Live,Sandbox",
+        IsRequired = true,
+        
+        DefaultValue = "Live" )]
 
     #endregion Component Attributes
     public class PiGateway : GatewayComponent, IHostedGatewayComponent
@@ -62,7 +63,7 @@ namespace Rock.TransNational.Pi
         {
             public const string PrivateApiKey = "PrivateApiKey";
             public const string PublicApiKey = "PublicApiKey";
-            public const string GatewayUrl = "GatewayUrl";
+            public const string Mode = "Mode";
         }
 
         #endregion Attribute Keys
@@ -76,7 +77,15 @@ namespace Rock.TransNational.Pi
         [System.Diagnostics.DebuggerStepThrough]
         public string GetGatewayUrl( FinancialGateway financialGateway )
         {
-            return this.GetAttributeValue( financialGateway, AttributeKey.GatewayUrl );
+            bool testMode = this.GetAttributeValue( financialGateway, AttributeKey.Mode ).Equals( "Sandbox" );
+            if ( testMode )
+            {
+                return "https://sandbox.gotnpgateway.com";
+            }
+            else
+            {
+                return "https://app.gotnpgateway.co ";
+            }
         }
 
         /// <summary>
@@ -880,7 +889,8 @@ namespace Rock.TransNational.Pi
 
             // we want to convert the startDate as a UTC Date, so get the UTC Date of the StartDate
             // Add a day to the LocalDate before converting to UTC so make sure the UTC Date is on or after the specified date
-            var startDateUTC = DateTime.SpecifyKind( schedule.StartDate, DateTimeKind.Local ).AddDays(1).ToUniversalTime().Date;
+            // Since UTC is 7 hours ahead (AZ time), we need to add a day so that it doesn't post on 5pm on the date *before* the expected date
+            var startDateUTC = DateTime.SpecifyKind( schedule.StartDate, DateTimeKind.Local ).AddDays( 1 ).ToUniversalTime().Date;
 
             SubscriptionRequestParameters subscriptionParameters = new SubscriptionRequestParameters
             {
