@@ -64,34 +64,36 @@ namespace Rockweb.Blocks.Crm
         CodeEditorTheme.Rock,
         400,
         true,
-        @"<div class='panel panel-default container'>
+        @"<div class='panel-heading panel-default rollover-container clearfix'>
     <div class='panel-heading'>Assessments</div>
-        {% for assessmenttype in AssessmentTypes %}
-            {% if assessmenttype.LastRequestObject %}
-                {% if assessmenttype.LastRequestObject.Status == 'Complete' %}
-                    <div class='panel panel-success'>
-                        <div class='panel-heading'> {{ assessmenttype.Title }}</br>
-                            Completed: {{ assessmenttype.LastRequestObject.CompletedDate | Date:'M/d/yyyy'}} </br>
-                            <a href='{{ assessmenttype.AssessmentResultsPath}}'>View Results</a>
+    <div class='panel-body'>
+            {% for assessmenttype in AssessmentTypes %}
+                {% if assessmenttype.LastRequestObject %}
+                    {% if assessmenttype.LastRequestObject.Status == 'Complete' %}
+                        <div class='panel panel-success'>
+                            <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+                                Completed: {{ assessmenttype.LastRequestObject.CompletedDate | Date:'M/d/yyyy'}} </br>
+                                <a href='{{ assessmenttype.AssessmentResultsPath}}'>View Results</a>
+                            </div>
                         </div>
-                    </div>
-                {% elseif assessmenttype.LastRequestObject.Status == 'Pending' %}
-                    <div class='panel panel-primary'>
-                        <div class='panel-heading'> {{ assessmenttype.Title }}</br>
-                            Requested: {{assessmenttype.LastRequestObject.Requester}} ({{ assessmenttype.LastRequestObject.RequestedDate | Date:'M/d/yyyy'}})</br>
-                            <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
+                    {% elseif assessmenttype.LastRequestObject.Status == 'Pending' %}
+                        <div class='panel panel-primary'>
+                            <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+                                Requested: {{assessmenttype.LastRequestObject.Requester}} ({{ assessmenttype.LastRequestObject.RequestedDate | Date:'M/d/yyyy'}})</br>
+                                <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
+                            </div>
                         </div>
-                    </div>
-                {% endif %}   
-                {% else %}
-                    <div class='panel panel-default'>
-                        <div class='panel-heading'> {{ assessmenttype.Title }}</br>
-                            Available</br>
-                            <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
+                    {% endif %}   
+                    {% else %}
+                        <div class='panel panel-default'>
+                            <div class='panel-heading'> {{ assessmenttype.Title }}</br>
+                                Available</br>
+                                <a href='{{ assessmenttype.AssessmentPath}}'>Start Assessment</a>
+                            </div>
                         </div>
-                    </div>
-            {% endif %}
-        {% endfor %}
+                {% endif %}
+            {% endfor %}
+    </div>
 </div>" )]
 
 #endregion
@@ -167,9 +169,9 @@ namespace Rockweb.Blocks.Crm
                         CompletedDate = r.CompletedDateTime,
                         Status = r.Status,
                         Requester = r.RequesterPersonAlias.Person.NickName + " " + r.RequesterPersonAlias.Person.LastName
-                    } ).FirstOrDefault()
-            } ).ToList();
-
+                    } ).OrderBy(x=>x.Status).FirstOrDefault()
+            } ).OrderByDescending( x=>x.LastRequestObject.Status).ToList();
+            
             // Checks Current Request Types to use against the settings
             foreach ( var item in getallAssessmentTypes )
             {
