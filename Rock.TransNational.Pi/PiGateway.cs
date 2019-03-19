@@ -8,6 +8,7 @@ using System.Web.UI;
 using Newtonsoft.Json;
 using RestSharp;
 using Rock.Attribute;
+using Rock.Data;
 using Rock.Financial;
 using Rock.Model;
 using Rock.Security;
@@ -48,7 +49,7 @@ namespace Rock.TransNational.Pi
         Description = "Set to Sandbox mode to use the sandbox test gateway instead of the production app gateway",
         ListSource = "Live,Sandbox",
         IsRequired = true,
-        
+
         DefaultValue = "Live" )]
 
     #endregion Component Attributes
@@ -230,6 +231,38 @@ namespace Rock.TransNational.Pi
         #region Customers
 
         /// <summary>
+        /// Creates the billing address.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="paymentInfo">The payment information.</param>
+        /// <returns></returns>
+        private T CreateBillingAddress<T>( PaymentInfo paymentInfo ) where T: BillingAddress, new()
+        {
+            var result = new T
+            {
+                FirstName = paymentInfo.FirstName,
+                LastName = paymentInfo.LastName,
+                Company = paymentInfo.BusinessName,
+                AddressLine1 = paymentInfo.Street1,
+                AddressLine2 = paymentInfo.Street2,
+                City = paymentInfo.City,
+                State = paymentInfo.State,
+                PostalCode = paymentInfo.PostalCode,
+                Country = paymentInfo.Country,
+                Email = paymentInfo.Email,
+                Phone = paymentInfo.Phone,
+            };
+
+            // if the Gateway requires FirstName, just put '-' if no FirstName was provided
+            if ( result.FirstName.IsNotNullOrWhiteSpace() )
+            {
+                result.FirstName = "-";
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Creates the customer.
         /// https://sandbox.gotnpgateway.com/docs/api/#create-a-new-customer
         /// NOTE: Pi Gateway supports multiple payment tokens per customer, but Rock will implement it as one Payment Method per Customer, and 0 or more Pi Customers (one for each payment entry) per Rock Person.
@@ -249,27 +282,8 @@ namespace Rock.TransNational.Pi
             {
                 Description = paymentInfo.FullName,
                 PaymentMethod = new PaymentMethodRequest( tokenizerToken ),
-                BillingAddress = new BillingAddress
-                {
-                    FirstName = paymentInfo.FirstName,
-                    LastName = paymentInfo.LastName,
-                    Company = paymentInfo.BusinessName,
-                    AddressLine1 = paymentInfo.Street1,
-                    AddressLine2 = paymentInfo.Street2,
-                    City = paymentInfo.City,
-                    State = paymentInfo.State,
-                    PostalCode = paymentInfo.PostalCode,
-                    Country = paymentInfo.Country,
-                    Email = paymentInfo.Email,
-                    Phone = paymentInfo.Phone,
-                }
+                BillingAddress = CreateBillingAddress<BillingAddress>( paymentInfo )
             };
-
-            if ( createCustomer.BillingAddress.FirstName.IsNullOrWhiteSpace() )
-            {
-                // if the Gateway requires FirstName, just put '-' if no FirstName was provided
-                createCustomer.BillingAddress.FirstName = "-";
-            }
 
             restRequest.AddJsonBody( createCustomer );
 
@@ -295,6 +309,33 @@ namespace Rock.TransNational.Pi
             var response = restClient.Execute( restRequest );
 
             return ParseResponse<CustomerResponse>( response );
+        }
+
+        /// <summary>
+        /// Updates the customer address.
+        /// https://sandbox.gotnpgateway.com/docs/api/#update-a-specific-customer-address
+        /// </summary>
+        /// <param name="gatewayUrl">The gateway URL.</param>
+        /// <param name="apiKey">The API key.</param>
+        /// <param name="customerId">The customer identifier.</param>
+        /// <param name="paymentInfo">The payment information.</param>
+        /// <returns></returns>
+        private UpdateCustomerAddressResponse UpdateCustomerAddress( string gatewayUrl, string apiKey, string customerId, PaymentInfo paymentInfo )
+        {
+            var customer = GetCustomer( gatewayUrl, apiKey, customerId );
+            var billingAddressId = customer?.Data?.BillingAddress?.Id;
+
+            UpdateCustomerAddressRequest updateCustomerAddressRequest = CreateBillingAddress<UpdateCustomerAddressRequest>( paymentInfo );
+
+            var restClient = new RestClient( gatewayUrl );
+            RestRequest restRequest = new RestRequest( $"api/customer/{customerId}/address/{billingAddressId}", Method.POST );
+            restRequest.AddHeader( "Authorization", apiKey );
+
+            restRequest.AddJsonBody( updateCustomerAddressRequest );
+
+            var response = restClient.Execute( restRequest );
+
+            return ParseResponse<UpdateCustomerAddressResponse>( response );
         }
 
         #endregion Customers
@@ -353,20 +394,8 @@ namespace Rock.TransNational.Pi
 
             transaction.Description = stringBuilderDescription.ToString().Truncate( 255 );
 
-            transaction.BillingAddress = new BillingAddress
-            {
-                FirstName = referencedPaymentInfo.FirstName,
-                LastName = referencedPaymentInfo.LastName,
-                AddressLine1 = referencedPaymentInfo.Street1,
-                AddressLine2 = referencedPaymentInfo.Street2,
-                City = referencedPaymentInfo.City,
-                State = referencedPaymentInfo.State,
-                PostalCode = referencedPaymentInfo.PostalCode,
-                Country = referencedPaymentInfo.Country,
-                Email = referencedPaymentInfo.Email,
-                Phone = referencedPaymentInfo.Phone,
-                CustomerId = customerId
-            };
+            transaction.BillingAddress = CreateBillingAddress<BillingAddress>( referencedPaymentInfo );
+            transaction.BillingAddress.CustomerId = customerId;
 
             restRequest.AddJsonBody( transaction );
 
@@ -918,7 +947,7 @@ namespace Rock.TransNational.Pi
             referencedPaymentInfo.TransactionCode = subscriptionId;
 
             var scheduledTransaction = new FinancialScheduledTransaction();
-            scheduledTransaction.TransactionCode = subscriptionId;
+            scheduledTransaction.TransactionCode = customerId;
             scheduledTransaction.GatewayScheduleId = subscriptionId;
             scheduledTransaction.FinancialGatewayId = financialGateway.Id;
 
@@ -967,17 +996,26 @@ namespace Rock.TransNational.Pi
 
             FinancialGateway financialGateway = scheduledTransaction.FinancialGateway;
 
-            var subscriptionResult = this.UpdateSubscription( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), subscriptionId, subscriptionParameters );
-            if ( subscriptionResult.IsSuccessStatus() )
-            {
-                errorMessage = string.Empty;
-                return true;
-            }
-            else
+            var gatewayUrl = this.GetGatewayUrl( financialGateway );
+            var apiKey = this.GetPrivateApiKey( financialGateway );
+
+            var subscriptionResult = this.UpdateSubscription( gatewayUrl, apiKey, subscriptionId, subscriptionParameters );
+            if ( !subscriptionResult.IsSuccessStatus() )
             {
                 errorMessage = subscriptionResult.Message;
                 return false;
             }
+
+            var  updateCustomerAddressResponse = this.UpdateCustomerAddress( gatewayUrl, apiKey, scheduledTransaction.TransactionCode, paymentInfo );
+
+            if ( !updateCustomerAddressResponse.IsSuccessStatus() )
+            {
+                errorMessage = updateCustomerAddressResponse.Message;
+                return false;
+            }
+
+            errorMessage = null;
+            return true;
         }
 
         /// <summary>
@@ -1101,15 +1139,40 @@ namespace Rock.TransNational.Pi
 
             var paymentList = new List<Payment>();
 
+            var rockContext = new RockContext();
+
+            Dictionary<string, string> scheduleIdLookupFromCustomerId = new Dictionary<string, string>();
+
             foreach ( var transaction in searchResult.Data )
             {
+                var customerId = transaction.CustomerId;
+
+                var gatewayScheduleId = scheduleIdLookupFromCustomerId.GetValueOrNull( customerId );
+                if ( gatewayScheduleId == null )
+                {
+                    // customerId is stored in scheduledTransaction.TransactionCode, so we know the customerId,
+                    // but we might know exactly what scheduled transaction it is since a FinancialPersonSavedAccount (where GatewayPersonId/CustomerID is stored)
+                    // can be used multiple times for charges and scheduled transactions
+                    var customerGatewayScheduleIds = new Rock.Model.FinancialScheduledTransactionService( rockContext ).Queryable().Where( a => a.TransactionCode == customerId ).Select( a => a.GatewayScheduleId ).ToList();
+
+                    // if there is exactly one gatewayScheduleId found for the customerId, then we can assume 
+                    if ( customerGatewayScheduleIds.Count == 1 )
+                    {
+                        gatewayScheduleId = customerGatewayScheduleIds[0];
+                    }
+
+                    if ( gatewayScheduleId.IsNotNullOrWhiteSpace() )
+                    {
+                        scheduleIdLookupFromCustomerId.Add( customerId, gatewayScheduleId );
+                    }
+                }
+
                 var payment = new Payment
                 {
                     AccountNumberMasked = transaction.PaymentMethodResponse.Card.MaskedCard,
                     Amount = transaction.Amount,
                     TransactionDateTime = transaction.CreatedDateTime.Value,
-                    // Todo: Figure out how to associate the transaction with the schedule that created it.
-                    GatewayScheduleId = ""
+                    GatewayScheduleId = gatewayScheduleId
                 };
 
                 paymentList.Add( payment );
@@ -1140,9 +1203,10 @@ namespace Rock.TransNational.Pi
         /// <returns></returns>
         public override string GetReferenceNumber( FinancialScheduledTransaction scheduledTransaction, out string errorMessage )
         {
-            // PI Gateway uses either a PiGateway CustomerId for this, which is stored in FinancialPersonSavedAccount.GatewayPersonIdentifier, not a previously scheduled transaction
-            errorMessage = string.Empty;
-            return string.Empty;
+            // we can figure out the customerId from scheduledTransaction.TransactionCode since
+            // that is what our implementation of PiGateway stores customerId (see AddScheduledPayment)
+            errorMessage = null;
+            return scheduledTransaction.TransactionCode;
         }
 
 

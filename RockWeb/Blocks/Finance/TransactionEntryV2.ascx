@@ -54,7 +54,7 @@
 
                         <asp:Panel ID="pnlScheduledTransaction" runat="server">
 
-                            <Rock:RockDropDownList ID="ddlFrequency" runat="server" FormGroupCssClass=" margin-t-md" AutoPostBack="true" OnSelectedIndexChanged="ddlFrequency_SelectionChanged" />
+                            <Rock:RockDropDownList ID="ddlFrequency" runat="server" FormGroupCssClass=" margin-t-md" AutoPostBack="true" OnSelectedIndexChanged="ddlFrequency_SelectedIndexChanged" />
 
                             <div class="margin-t-md">
                                 <Rock:RockDropDownList ID="ddlPersonSavedAccount" runat="server" Label="Giving Method" />
@@ -209,30 +209,30 @@
 
             function showSaveAccount(animate) {
                 var show = $('.js-save-account').is(':checked');
+                var $savedAccountEntry = $('.js-save-account-entry');
                 if (show) {
                     if (animate) {
-                        $('.js-save-account-entry').slideDown();
+                        $savedAccountEntry.slideDown();
                     }
                     else {
-                        $('.js-save-account-entry').show();
+                        $savedAccountEntry.show();
                     }
                 }
                 else {
                     if (animate) {
-                        $('.js-save-account-entry').slideUp();
+                        $savedAccountEntry.slideUp();
                     }
                     else {
-                        $('.js-save-account-entry').hide();
+                        $savedAccountEntry.hide();
                     }
                 }
             }
 
             Sys.Application.add_load(function () {
 
-                $('.js-submit-hostedpaymentinfo').click(function () {
+                $('.js-submit-hostedpaymentinfo').off().on('click', (function () {
                     <%=HostPaymentInfoSubmitScript%>
                 });
-
 
                 if ($('.js-save-account').length > 0) {
 

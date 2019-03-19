@@ -883,6 +883,42 @@ mission. We are so grateful for your commitment.</p>
         }
 
         /// <summary>
+        /// Raises the <see cref="E:System.Web.UI.Control.Load" /> event.
+        /// </summary>
+        /// <param name="e">The <see cref="T:System.EventArgs" /> object that contains the event data.</param>
+        protected override void OnLoad( EventArgs e )
+        {
+            base.OnLoad( e );
+
+            if ( !Page.IsPostBack )
+            {
+                // Ensure that there is only one transaction processed by getting a unique guid when this block loads for the first time
+                // This will ensure there are no (unintended) duplicate transactions
+                hfTransactionGuid.Value = Guid.NewGuid().ToString();
+                ShowDetails();
+            }
+            else
+            {
+                RouteAction();
+            }
+        }
+
+        #endregion Base Control Methods
+
+        #region Events
+
+        /// <summary>
+        /// Handles the BlockUpdated event of the control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void Block_BlockUpdated( object sender, EventArgs e )
+        {
+            // If block options where changed, reload the whole page since changing some of the options (Gateway ACH Control options ) requires a full page reload
+            this.NavigateToCurrentPageReference();
+        }
+
+        /// <summary>
         /// Handles the TokenReceived event of the _hostedPaymentInfoControl control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
@@ -903,25 +939,406 @@ mission. We are so grateful for your commitment.</p>
             }
         }
 
-        /// <summary>
-        /// Raises the <see cref="E:System.Web.UI.Control.Load" /> event.
-        /// </summary>
-        /// <param name="e">The <see cref="T:System.EventArgs" /> object that contains the event data.</param>
-        protected override void OnLoad( EventArgs e )
-        {
-            base.OnLoad( e );
+        #endregion
 
-            if ( !Page.IsPostBack )
+        #region Gateway Help Related
+
+        /// <summary>
+        /// Handles the ItemDataBound event of the rptInstalledGateways control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.Web.UI.WebControls.RepeaterItemEventArgs"/> instance containing the event data.</param>
+        protected void rptInstalledGateways_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
+        {
+            IHostedGatewayComponent financialGatewayComponent = e.Item.DataItem as IHostedGatewayComponent;
+            if ( financialGatewayComponent == null )
             {
-                // Ensure that there is only one transaction processed by getting a unique guid when this block loads for the first time
-                // This will ensure there are no (unintended) duplicate transactions
-                hfTransactionGuid.Value = Guid.NewGuid().ToString();
-                ShowDetails();
+                return;
+            }
+
+            var gatewayEntityType = EntityTypeCache.Get( financialGatewayComponent.TypeGuid );
+            var gatewayEntityTypeType = gatewayEntityType.GetEntityType();
+
+            HiddenField hfGatewayEntityTypeId = e.Item.FindControl( "hfGatewayEntityTypeId" ) as HiddenField;
+            hfGatewayEntityTypeId.Value = gatewayEntityType.Id.ToString();
+
+            Literal lGatewayName = e.Item.FindControl( "lGatewayName" ) as Literal;
+            Literal lGatewayDescription = e.Item.FindControl( "lGatewayDescription" ) as Literal;
+
+            lGatewayName.Text = Reflection.GetDisplayName( gatewayEntityTypeType );
+            lGatewayDescription.Text = Reflection.GetDescription( gatewayEntityTypeType );
+
+            HyperLink aGatewayConfigure = e.Item.FindControl( "aGatewayConfigure" ) as HyperLink;
+            HyperLink aGatewayLearnMore = e.Item.FindControl( "aGatewayLearnMore" ) as HyperLink;
+            aGatewayConfigure.Visible = financialGatewayComponent.ConfigureURL.IsNotNullOrWhiteSpace();
+            aGatewayLearnMore.Visible = financialGatewayComponent.LearnMoreURL.IsNotNullOrWhiteSpace();
+
+            aGatewayConfigure.NavigateUrl = financialGatewayComponent.ConfigureURL;
+            aGatewayLearnMore.NavigateUrl = financialGatewayComponent.LearnMoreURL;
+        }
+
+        /// <summary>
+        /// Loads and Validates the gateways, showing a message if the gateways aren't configured correctly
+        /// </summary>
+        private bool LoadGatewayOptions()
+        {
+            if ( this.FinancialGateway == null )
+            {
+                ShowGatewayHelp();
+                return false;
             }
             else
             {
-                RouteAction();
+                HideGatewayHelp();
             }
+
+            // get the FinancialGateway's GatewayComponent so we can show a warning if they have an unsupported gateway.
+            bool unsupportedGateway = ( FinancialGateway.GetGatewayComponent() is IHostedGatewayComponent ) == false;
+
+            var testGatewayGuid = Rock.SystemGuid.EntityType.FINANCIAL_GATEWAY_TEST_GATEWAY.AsGuid();
+
+            if ( unsupportedGateway )
+            {
+                ShowConfigurationMessage( NotificationBoxType.Warning, "Unsupported Gateway", "This block only support Gateways that have a hosted payment interface." );
+                pnlTransactionEntry.Visible = false;
+                return false;
+            }
+            else if ( this.FinancialGatewayComponent.TypeGuid == testGatewayGuid )
+            {
+                ShowConfigurationMessage( NotificationBoxType.Warning, "Testing", "You are using the Test Financial Gateway. No actual amounts will be charged to your card or bank account." );
+            }
+            else
+            {
+                HideConfigurationMessage();
+            }
+
+            var supportedFrequencies = this.FinancialGatewayComponent.SupportedPaymentSchedules;
+            foreach ( var supportedFrequency in supportedFrequencies )
+            {
+                ddlFrequency.Items.Add( new ListItem( supportedFrequency.Value, supportedFrequency.Id.ToString() ) );
+            }
+
+            // If gateway didn't specifically support one-time, add it anyway for immediate gifts
+            var oneTimeFrequency = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME );
+            if ( !supportedFrequencies.Where( f => f.Id == oneTimeFrequency.Id ).Any() )
+            {
+                ddlFrequency.Items.Insert( 0, new ListItem( oneTimeFrequency.Value, oneTimeFrequency.Id.ToString() ) );
+            }
+
+            ddlFrequency.SelectedValue = oneTimeFrequency.Id.ToString();
+            dtpStartDate.SelectedDate = RockDateTime.Today;
+            pnlScheduledTransaction.Visible = this.GetAttributeValue( AttributeKey.AllowScheduledTransactions ).AsBoolean();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Shows the gateway help
+        /// </summary>
+        private void ShowGatewayHelp()
+        {
+            pnlGatewayHelp.Visible = true;
+            pnlTransactionEntry.Visible = false;
+
+            var hostedGatewayComponentList = Rock.Financial.GatewayContainer.Instance.Components
+                .Select( a => a.Value.Value )
+                .Where( a => a is IHostedGatewayComponent )
+                .Select( a => a as IHostedGatewayComponent ).ToList();
+
+            rptInstalledGateways.DataSource = hostedGatewayComponentList;
+            rptInstalledGateways.DataBind();
+        }
+
+        /// <summary>
+        /// Hides the gateway help.
+        /// </summary>
+        private void HideGatewayHelp()
+        {
+            pnlGatewayHelp.Visible = false;
+        }
+
+        /// <summary>
+        /// Shows the configuration message.
+        /// </summary>
+        /// <param name="notificationBoxType">Type of the notification box.</param>
+        /// <param name="title">The title.</param>
+        /// <param name="message">The message.</param>
+        private void ShowConfigurationMessage( NotificationBoxType notificationBoxType, string title, string message )
+        {
+            nbConfigurationNotification.NotificationBoxType = notificationBoxType;
+            nbConfigurationNotification.Title = title;
+            nbConfigurationNotification.Text = message;
+
+            nbConfigurationNotification.Visible = true;
+        }
+
+        /// <summary>
+        /// Hides the configuration message.
+        /// </summary>
+        private void HideConfigurationMessage()
+        {
+            nbConfigurationNotification.Visible = false;
+        }
+
+        #endregion Gateway Guide Related
+
+        #region Scheduled Gifts Related
+
+        /// <summary>
+        /// if ShowScheduledTransactions is enabled, Loads Scheduled Transactions into Lava Merge Fields for <seealso cref="AttributeKey.ScheduledTransactionsTemplate"/>
+        /// </summary>
+        private void BindScheduledTransactions()
+        {
+            if ( !this.GetAttributeValue( AttributeKey.ShowScheduledTransactions ).AsBoolean() )
+            {
+                return;
+            }
+
+            var rockContext = new RockContext();
+            var targetPerson = GetTargetPerson( rockContext );
+
+            if ( targetPerson == null )
+            {
+                pnlScheduledTransactions.Visible = false;
+                return;
+            }
+
+            var mergeFields = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson, new CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
+            mergeFields.Add( "GiftTerm", this.GetAttributeValue( AttributeKey.GiftTerm ) ?? "Gift" );
+
+            Dictionary<string, object> linkedPages = new Dictionary<string, object>();
+            linkedPages.Add( "ScheduledTransactionEditPage", LinkedPageRoute( AttributeKey.ScheduledTransactionEditPage ) );
+            mergeFields.Add( "LinkedPages", linkedPages );
+
+            FinancialScheduledTransactionService financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
+
+            // get business giving id
+            var givingIdList = targetPerson.GetBusinesses( rockContext ).Select( g => g.GivingId ).ToList();
+
+            var targetPersonGivingId = targetPerson.GivingId;
+            givingIdList.Add( targetPersonGivingId );
+            var scheduledTransactionList = financialScheduledTransactionService.Queryable()
+                .Where( a => givingIdList.Contains( a.AuthorizedPersonAlias.Person.GivingId ) && a.IsActive == true )
+                .ToList();
+
+            foreach ( var scheduledTransaction in scheduledTransactionList )
+            {
+                string errorMessage;
+                financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
+            }
+
+            rockContext.SaveChanges();
+
+            pnlScheduledTransactions.Visible = scheduledTransactionList.Any();
+
+            scheduledTransactionList = scheduledTransactionList.OrderByDescending( a => a.NextPaymentDate ).ToList();
+
+            mergeFields.Add( "ScheduledTransactions", scheduledTransactionList );
+
+            var scheduledTransactionsTemplate = this.GetAttributeValue( AttributeKey.ScheduledTransactionsTemplate );
+            lScheduledTransactionsHTML.Text = scheduledTransactionsTemplate.ResolveMergeFields( mergeFields ).ResolveClientIds( upnlContent.ClientID );
+        }
+
+        /// <summary>
+        /// Deletes the scheduled transaction.
+        /// </summary>
+        /// <param name="scheduledTransactionId">The scheduled transaction identifier.</param>
+        protected void DeleteScheduledTransaction( int scheduledTransactionId )
+        {
+            using ( var rockContext = new Rock.Data.RockContext() )
+            {
+                FinancialScheduledTransactionService financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
+                var scheduledTransaction = financialScheduledTransactionService.Get( scheduledTransactionId );
+                if ( scheduledTransaction == null )
+                {
+                    return;
+                }
+
+                scheduledTransaction.FinancialGateway.LoadAttributes( rockContext );
+
+                string errorMessage = string.Empty;
+                if ( financialScheduledTransactionService.Cancel( scheduledTransaction, out errorMessage ) )
+                {
+                    try
+                    {
+                        financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    rockContext.SaveChanges();
+                }
+                else
+                {
+                    nbConfigurationNotification.Dismissable = true;
+                    nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Danger;
+                    nbConfigurationNotification.Text = string.Format( "An error occurred while deleting your scheduled {0}", GetAttributeValue( AttributeKey.GiftTerm ).ToLower() );
+                    nbConfigurationNotification.Details = errorMessage;
+                    nbConfigurationNotification.Visible = true;
+                }
+            }
+
+            BindScheduledTransactions();
+        }
+
+        #endregion Scheduled Gifts
+
+        #region Transaction Entry Related
+
+        /// <summary>
+        /// Updates the Personal/Business info when giving as a business
+        /// </summary>
+        private void UpdatePersonalInformationFromSelectedBusiness()
+        {
+            var rockContext = new RockContext();
+            var personService = new PersonService( rockContext );
+            int? selectedBusinessPersonId = cblSelectBusiness.SelectedValue.AsIntegerOrNull();
+            Person personAsBusiness = null;
+            if ( selectedBusinessPersonId.HasValue )
+            {
+                personAsBusiness = personService.Get( selectedBusinessPersonId.Value );
+            }
+
+            if ( personAsBusiness == null )
+            {
+                tbBusinessName.Text = null;
+                acAddressBusiness.SetValues( null );
+                tbEmailBusiness.Text = string.Empty;
+                pnbPhoneBusiness.Text = string.Empty;
+            }
+            else
+            {
+                tbBusinessName.Text = personAsBusiness.LastName;
+
+                Guid addressTypeGuid = Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_WORK.AsGuid();
+                var addressTypeId = DefinedValueCache.GetId( addressTypeGuid );
+
+                GroupLocation businessLocation = null;
+                if ( addressTypeId.HasValue )
+                {
+                    businessLocation = new PersonService( rockContext ).GetFirstLocation( personAsBusiness.Id, addressTypeId.Value );
+                }
+
+                if ( businessLocation != null )
+                {
+                    acAddressBusiness.SetValues( businessLocation.Location );
+                }
+                else
+                {
+                    acAddressBusiness.SetValues( null );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles the CheckedChanged event of the tglIndividualOrBusiness control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void tglIndividualOrBusiness_CheckedChanged( object sender, EventArgs e )
+        {
+            bool givingAsBusiness = GivingAsBusiness();
+            pnlPersonInformationAsIndividual.Visible = !givingAsBusiness;
+            pnlPersonInformationAsBusiness.Visible = givingAsBusiness;
+            UpdatePersonalInformationFromSelectedBusiness();
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnSaveAccount control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void btnSaveAccount_Click( object sender, EventArgs e )
+        {
+            var rockContext = new RockContext();
+
+            var targetPerson = GetTargetPerson( rockContext );
+
+            if ( pnlCreateLogin.Visible )
+            {
+                string errorTitle = null;
+                string errorMessage = null;
+                if ( !UserLoginService.IsValidNewUserLogin( tbUserName.Text, tbPassword.Text, tbPasswordConfirm.Text, out errorTitle, out errorMessage ) )
+                {
+                    nbSaveAccountError.Title = errorTitle;
+                    nbSaveAccountError.Text = errorMessage;
+                    nbSaveAccountError.NotificationBoxType = NotificationBoxType.Validation;
+                    nbSaveAccountError.Visible = true;
+                    return;
+                }
+
+                var userLogin = UserLoginService.Create(
+                    rockContext,
+                    targetPerson,
+                    Rock.Model.AuthenticationServiceType.Internal,
+                    EntityTypeCache.Get( Rock.SystemGuid.EntityType.AUTHENTICATION_DATABASE.AsGuid() ).Id,
+                    tbUserName.Text,
+                    tbPassword.Text,
+                    false );
+
+                var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson );
+                mergeFields.Add( "ConfirmAccountUrl", RootPath + "ConfirmAccount" );
+                mergeFields.Add( "Person", targetPerson );
+                mergeFields.Add( "User", userLogin );
+
+                var emailMessage = new RockEmailMessage( GetAttributeValue( AttributeKey.ConfirmAccountEmailTemplate ).AsGuid() );
+                emailMessage.AddRecipient( new RecipientData( targetPerson.Email, mergeFields ) );
+                emailMessage.AppRoot = ResolveRockUrl( "~/" );
+                emailMessage.ThemeRoot = ResolveRockUrl( "~~/" );
+                emailMessage.CreateCommunicationRecord = false;
+                emailMessage.Send();
+            }
+
+            var financialGatewayComponent = this.FinancialGatewayComponent;
+            var financialGateway = this.FinancialGateway;
+
+            var financialTransaction = new FinancialTransactionService( rockContext ).Get( hfTransactionGuid.Value.AsGuid() );
+
+            var gatewayPersonIdentifier = Rock.Security.Encryption.DecryptString( this.CustomerTokenEncrypted );
+
+            var savedAccount = new FinancialPersonSavedAccount();
+            var paymentDetail = financialTransaction.FinancialPaymentDetail;
+
+            savedAccount.PersonAliasId = targetPerson.PrimaryAliasId;
+            savedAccount.ReferenceNumber = gatewayPersonIdentifier;
+            savedAccount.Name = tbSaveAccount.Text;
+            savedAccount.TransactionCode = TransactionCode;
+            savedAccount.GatewayPersonIdentifier = gatewayPersonIdentifier;
+            savedAccount.FinancialGatewayId = financialGateway.Id;
+            savedAccount.FinancialPaymentDetail = new FinancialPaymentDetail();
+            savedAccount.FinancialPaymentDetail.AccountNumberMasked = paymentDetail.AccountNumberMasked;
+            savedAccount.FinancialPaymentDetail.CurrencyTypeValueId = paymentDetail.CurrencyTypeValueId;
+            savedAccount.FinancialPaymentDetail.CreditCardTypeValueId = paymentDetail.CreditCardTypeValueId;
+            savedAccount.FinancialPaymentDetail.NameOnCardEncrypted = paymentDetail.NameOnCardEncrypted;
+            savedAccount.FinancialPaymentDetail.ExpirationMonthEncrypted = paymentDetail.ExpirationMonthEncrypted;
+            savedAccount.FinancialPaymentDetail.ExpirationYearEncrypted = paymentDetail.ExpirationYearEncrypted;
+            savedAccount.FinancialPaymentDetail.BillingLocationId = paymentDetail.BillingLocationId;
+
+            var savedAccountService = new FinancialPersonSavedAccountService( rockContext );
+            savedAccountService.Add( savedAccount );
+            rockContext.SaveChanges();
+
+            cbSaveAccount.Visible = false;
+            tbSaveAccount.Visible = false;
+            pnlCreateLogin.Visible = false;
+            divSaveActions.Visible = false;
+
+            nbSaveAccountSuccess.Title = "Success";
+            nbSaveAccountSuccess.Text = "The account has been saved for future use";
+            nbSaveAccountSuccess.NotificationBoxType = NotificationBoxType.Success;
+            nbSaveAccountSuccess.Visible = true;
+        }
+
+        /// <summary>
+        /// Handles the SelectedIndexChanged event of the cblSelectBusiness control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void cblSelectBusiness_SelectedIndexChanged( object sender, EventArgs e )
+        {
+            UpdatePersonalInformationFromSelectedBusiness();
         }
 
         /// <summary>
@@ -1166,268 +1583,6 @@ mission. We are so grateful for your commitment.</p>
 
             return result;
         }
-
-        #endregion
-
-        #region Events
-
-        /// <summary>
-        /// Handles the BlockUpdated event of the control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void Block_BlockUpdated( object sender, EventArgs e )
-        {
-            // If block options where changed, reload the whole page since changing some of the options (Gateway ACH Control options ) requires a full page reload
-            this.NavigateToCurrentPageReference();
-        }
-
-        #endregion
-
-        #region Methods
-
-        #endregion
-
-        #region Gateway Help Related
-
-        /// <summary>
-        /// Handles the ItemDataBound event of the rptInstalledGateways control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="System.Web.UI.WebControls.RepeaterItemEventArgs"/> instance containing the event data.</param>
-        protected void rptInstalledGateways_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
-        {
-            IHostedGatewayComponent financialGatewayComponent = e.Item.DataItem as IHostedGatewayComponent;
-            if ( financialGatewayComponent == null )
-            {
-                return;
-            }
-
-            var gatewayEntityType = EntityTypeCache.Get( financialGatewayComponent.TypeGuid );
-            var gatewayEntityTypeType = gatewayEntityType.GetEntityType();
-
-            HiddenField hfGatewayEntityTypeId = e.Item.FindControl( "hfGatewayEntityTypeId" ) as HiddenField;
-            hfGatewayEntityTypeId.Value = gatewayEntityType.Id.ToString();
-
-            Literal lGatewayName = e.Item.FindControl( "lGatewayName" ) as Literal;
-            Literal lGatewayDescription = e.Item.FindControl( "lGatewayDescription" ) as Literal;
-
-            lGatewayName.Text = Reflection.GetDisplayName( gatewayEntityTypeType );
-            lGatewayDescription.Text = Reflection.GetDescription( gatewayEntityTypeType );
-
-            HyperLink aGatewayConfigure = e.Item.FindControl( "aGatewayConfigure" ) as HyperLink;
-            HyperLink aGatewayLearnMore = e.Item.FindControl( "aGatewayLearnMore" ) as HyperLink;
-            aGatewayConfigure.Visible = financialGatewayComponent.ConfigureURL.IsNotNullOrWhiteSpace();
-            aGatewayLearnMore.Visible = financialGatewayComponent.LearnMoreURL.IsNotNullOrWhiteSpace();
-
-            aGatewayConfigure.NavigateUrl = financialGatewayComponent.ConfigureURL;
-            aGatewayLearnMore.NavigateUrl = financialGatewayComponent.LearnMoreURL;
-        }
-
-        /// <summary>
-        /// Loads and Validates the gateways, showing a message if the gateways aren't configured correctly
-        /// </summary>
-        private bool LoadGatewayOptions()
-        {
-            if ( this.FinancialGateway == null )
-            {
-                ShowGatewayHelp();
-                return false;
-            }
-            else
-            {
-                HideGatewayHelp();
-            }
-
-            // get the FinancialGateway's GatewayComponent so we can show a warning if they have an unsupported gateway.
-            bool unsupportedGateway = ( FinancialGateway.GetGatewayComponent() is IHostedGatewayComponent ) == false;
-
-            var testGatewayGuid = Rock.SystemGuid.EntityType.FINANCIAL_GATEWAY_TEST_GATEWAY.AsGuid();
-
-            if ( unsupportedGateway )
-            {
-                ShowConfigurationMessage( NotificationBoxType.Warning, "Unsupported Gateway", "This block only support Gateways that have a hosted payment interface." );
-                pnlTransactionEntry.Visible = false;
-                return false;
-            }
-            else if ( this.FinancialGatewayComponent.TypeGuid == testGatewayGuid )
-            {
-                ShowConfigurationMessage( NotificationBoxType.Warning, "Testing", "You are using the Test Financial Gateway. No actual amounts will be charged to your card or bank account." );
-            }
-            else
-            {
-                HideConfigurationMessage();
-            }
-
-            var supportedFrequencies = _financialGatewayComponent.SupportedPaymentSchedules;
-            foreach ( var supportedFrequency in supportedFrequencies )
-            {
-                ddlFrequency.Items.Add( new ListItem( supportedFrequency.Value, supportedFrequency.Id.ToString() ) );
-            }
-
-            // If gateway didn't specifically support one-time, add it anyway for immediate gifts
-            var oneTimeFrequency = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME );
-            if ( !supportedFrequencies.Where( f => f.Id == oneTimeFrequency.Id ).Any() )
-            {
-                ddlFrequency.Items.Insert( 0, new ListItem( oneTimeFrequency.Value, oneTimeFrequency.Id.ToString() ) );
-            }
-
-            ddlFrequency.SelectedValue = oneTimeFrequency.Id.ToString();
-            dtpStartDate.SelectedDate = RockDateTime.Today;
-            pnlScheduledTransaction.Visible = this.GetAttributeValue( AttributeKey.AllowScheduledTransactions ).AsBoolean();
-
-            return true;
-        }
-
-        /// <summary>
-        /// Shows the gateway help
-        /// </summary>
-        private void ShowGatewayHelp()
-        {
-            pnlGatewayHelp.Visible = true;
-            pnlTransactionEntry.Visible = false;
-
-            var hostedGatewayComponentList = Rock.Financial.GatewayContainer.Instance.Components
-                .Select( a => a.Value.Value )
-                .Where( a => a is IHostedGatewayComponent )
-                .Select( a => a as IHostedGatewayComponent ).ToList();
-
-            rptInstalledGateways.DataSource = hostedGatewayComponentList;
-            rptInstalledGateways.DataBind();
-        }
-
-        /// <summary>
-        /// Hides the gateway help.
-        /// </summary>
-        private void HideGatewayHelp()
-        {
-            pnlGatewayHelp.Visible = false;
-        }
-
-        /// <summary>
-        /// Shows the configuration message.
-        /// </summary>
-        /// <param name="notificationBoxType">Type of the notification box.</param>
-        /// <param name="title">The title.</param>
-        /// <param name="message">The message.</param>
-        private void ShowConfigurationMessage( NotificationBoxType notificationBoxType, string title, string message )
-        {
-            nbConfigurationNotification.NotificationBoxType = notificationBoxType;
-            nbConfigurationNotification.Title = title;
-            nbConfigurationNotification.Text = message;
-
-            nbConfigurationNotification.Visible = true;
-        }
-
-        /// <summary>
-        /// Hides the configuration message.
-        /// </summary>
-        private void HideConfigurationMessage()
-        {
-            nbConfigurationNotification.Visible = false;
-        }
-
-        #endregion Gateway Guide Related
-
-        #region Scheduled Gifts Related
-
-        /// <summary>
-        /// Loads Scheduled Transactions into Lava Merge Fields for <seealso cref="AttributeKey.ScheduledTransactionsTemplate"/>
-        /// </summary>
-        private void BindScheduledTransactions()
-        {
-            var rockContext = new RockContext();
-            var targetPerson = GetTargetPerson( rockContext );
-
-            if ( targetPerson == null )
-            {
-                pnlScheduledTransactions.Visible = false;
-                return;
-            }
-
-            var mergeFields = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson, new CommonMergeFieldsOptions { GetLegacyGlobalMergeFields = false } );
-            mergeFields.Add( "GiftTerm", this.GetAttributeValue( AttributeKey.GiftTerm ) ?? "Gift" );
-
-            Dictionary<string, object> linkedPages = new Dictionary<string, object>();
-            linkedPages.Add( "ScheduledTransactionEditPage", LinkedPageRoute( AttributeKey.ScheduledTransactionEditPage ) );
-            mergeFields.Add( "LinkedPages", linkedPages );
-
-            FinancialScheduledTransactionService financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
-
-            // get business giving id
-            var givingIdList = targetPerson.GetBusinesses( rockContext ).Select( g => g.GivingId ).ToList();
-
-            var targetPersonGivingId = targetPerson.GivingId;
-            givingIdList.Add( targetPersonGivingId );
-            var scheduledTransactionList = financialScheduledTransactionService.Queryable()
-                .Where( a => givingIdList.Contains( a.AuthorizedPersonAlias.Person.GivingId ) && a.IsActive == true )
-                .ToList();
-
-            foreach ( var scheduledTransaction in scheduledTransactionList )
-            {
-                string errorMessage;
-                financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
-            }
-
-            rockContext.SaveChanges();
-
-            pnlScheduledTransactions.Visible = scheduledTransactionList.Any();
-
-            scheduledTransactionList = scheduledTransactionList.OrderByDescending( a => a.NextPaymentDate ).ToList();
-
-            mergeFields.Add( "ScheduledTransactions", scheduledTransactionList );
-
-            var scheduledTransactionsTemplate = this.GetAttributeValue( AttributeKey.ScheduledTransactionsTemplate );
-            lScheduledTransactionsHTML.Text = scheduledTransactionsTemplate.ResolveMergeFields( mergeFields ).ResolveClientIds( upnlContent.ClientID );
-        }
-
-        /// <summary>
-        /// Deletes the scheduled transaction.
-        /// </summary>
-        /// <param name="scheduledTransactionId">The scheduled transaction identifier.</param>
-        protected void DeleteScheduledTransaction( int scheduledTransactionId )
-        {
-            using ( var rockContext = new Rock.Data.RockContext() )
-            {
-                FinancialScheduledTransactionService financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
-                var scheduledTransaction = financialScheduledTransactionService.Get( scheduledTransactionId );
-                if ( scheduledTransaction == null )
-                {
-                    return;
-                }
-
-                scheduledTransaction.FinancialGateway.LoadAttributes( rockContext );
-
-                string errorMessage = string.Empty;
-                if ( financialScheduledTransactionService.Cancel( scheduledTransaction, out errorMessage ) )
-                {
-                    try
-                    {
-                        financialScheduledTransactionService.GetStatus( scheduledTransaction, out errorMessage );
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-
-                    rockContext.SaveChanges();
-                }
-                else
-                {
-                    nbConfigurationNotification.Dismissable = true;
-                    nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Danger;
-                    nbConfigurationNotification.Text = string.Format( "An error occurred while deleting your scheduled {0}", GetAttributeValue( AttributeKey.GiftTerm ).ToLower() );
-                    nbConfigurationNotification.Details = errorMessage;
-                    nbConfigurationNotification.Visible = true;
-                }
-            }
-
-            BindScheduledTransactions();
-        }
-
-        #endregion Scheduled Gifts
-
-        #region Transaction Entry Related
 
         /// <summary>
         /// Initializes the UI based on the initial target person.
@@ -1767,6 +1922,9 @@ mission. We are so grateful for your commitment.</p>
             {
                 var rockContext = new RockContext();
 
+                // fetch primaryFamily using rockContext so that any changes will get saved
+                primaryFamily = new GroupService( rockContext ).Get( primaryFamily.Id );
+
                 GroupService.AddNewGroupAddress(
                     rockContext,
                     primaryFamily,
@@ -1782,10 +1940,9 @@ mission. We are so grateful for your commitment.</p>
         }
 
         /// <summary>
-        /// Binds the person saved accounts that are available for the <paramref name="selectedScheduleFrequencyId"/>
+        /// Binds the person saved accounts that are available for the <paramref name="selectedScheduleFrequencyId" />
         /// </summary>
-        /// <param name="selectedScheduleFrequencyId">The selected schedule frequency identifier.</param>
-        private void BindPersonSavedAccounts( int selectedScheduleFrequencyId )
+        private void BindPersonSavedAccounts()
         {
             ddlPersonSavedAccount.Visible = false;
             var currentSavedAccountSelection = ddlPersonSavedAccount.SelectedValue;
@@ -1811,12 +1968,6 @@ mission. We are so grateful for your commitment.</p>
 
             var financialGateway = this.FinancialGateway;
             if ( financialGateway == null )
-            {
-                return;
-            }
-
-            var financialGatewayComponent = this.FinancialGatewayComponent;
-            if ( financialGatewayComponent == null )
             {
                 return;
             }
@@ -1904,7 +2055,7 @@ mission. We are so grateful for your commitment.</p>
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="System.EventArgs" /> instance containing the event data.</param>
-        protected void ddlFrequency_SelectionChanged( object sender, EventArgs e )
+        protected void ddlFrequency_SelectedIndexChanged( object sender, EventArgs e )
         {
             UpdateGivingControlsForSelections();
         }
@@ -1914,7 +2065,7 @@ mission. We are so grateful for your commitment.</p>
         /// </summary>
         private void UpdateGivingControlsForSelections()
         {
-            BindPersonSavedAccounts( ddlFrequency.SelectedValue.AsInteger() );
+            BindPersonSavedAccounts();
 
             int selectedScheduleFrequencyId = ddlFrequency.SelectedValue.AsInteger();
 
@@ -1947,110 +2098,6 @@ mission. We are so grateful for your commitment.</p>
         {
             UpdateGivingControlsForSelections();
         }
-
-        #endregion Transaction Entry Related
-
-        #region Navigation
-
-        /// <summary>
-        /// Handles the Click event of the btnGiveNow control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnGiveNow_Click( object sender, EventArgs e )
-        {
-            if ( caapPromptForAccountAmounts.IsValidAmountSelected() )
-            {
-                nbPromptForAmountsWarning.Visible = false;
-                pnlPersonalInformation.Visible = false;
-                var totalAmount = caapPromptForAccountAmounts.AccountAmounts.Sum( a => a.Amount ?? 0.00M );
-
-                // get the accountId(s) that have an amount specified
-                var amountAccountIds = caapPromptForAccountAmounts.AccountAmounts
-                    .Where( a => a.Amount.HasValue && a.Amount != 0.00M ).Select( a => a.AccountId )
-                    .ToList();
-
-                var accountNames = new FinancialAccountService( new RockContext() )
-                    .GetByIds( amountAccountIds )
-                    .Select( a => a.PublicName )
-                    .ToList().AsDelimited( ", ", " and " );
-
-                lAmountSummaryAccounts.Text = accountNames;
-                lAmountSummaryAmount.Text = totalAmount.FormatAsCurrency();
-                if ( caapPromptForAccountAmounts.CampusId.HasValue )
-                {
-                    lAmountSummaryCampus.Text = CampusCache.Get( caapPromptForAccountAmounts.CampusId.Value ).Name;
-                }
-
-                if ( UsingPersonSavedAccount() )
-                {
-                    NavigateToStep( EntryStep.GetPersonalInformation );
-                }
-                else
-                {
-                    NavigateToStep( EntryStep.GetPaymentInfo );
-                }
-            }
-            else
-            {
-                nbPromptForAmountsWarning.Visible = true;
-                nbPromptForAmountsWarning.Text = "Please specify an amount";
-            }
-        }
-
-        /// <summary>
-        /// Handles the Click event of the btnGetPaymentInfoBack control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnGetPaymentInfoBack_Click( object sender, EventArgs e )
-        {
-            NavigateToStep( EntryStep.PromptForAmounts );
-        }
-
-        /// <summary>
-        /// Handles the Click event of the btnGetPaymentInfoNext control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnGetPaymentInfoNext_Click( object sender, EventArgs e )
-        {
-            //// NOTE: the btnGetPaymentInfoNext button tells _hostedPaymentInfoControl to get a token via JavaScript
-            //// When _hostedPaymentInfoControl gets a token response, the _hostedPaymentInfoControl_TokenReceived event will be triggered
-            //// If _hostedPaymentInfoControl_TokenReceived gets a valid token, it will call btnGetPaymentInfoNext_Click
-
-            nbProcessTransactionError.Visible = false;
-            NavigateToStep( EntryStep.GetPersonalInformation );
-        }
-
-        /// <summary>
-        /// Handles the Click event of the btnPersonalInformationBack control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnPersonalInformationBack_Click( object sender, EventArgs e )
-        {
-            if ( UsingPersonSavedAccount() )
-            {
-                NavigateToStep( EntryStep.PromptForAmounts );
-            }
-            else
-            {
-                NavigateToStep( EntryStep.GetPaymentInfo );
-            }
-        }
-
-        /// <summary>
-        /// Handles the Click event of the btnPersonalInformationNext control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnPersonalInformationNext_Click( object sender, EventArgs e )
-        {
-            ProcessTransaction();
-        }
-
-        #endregion navigation
 
         /// <summary>
         /// Processes the transaction.
@@ -2383,8 +2430,6 @@ mission. We are so grateful for your commitment.</p>
             NavigateToStep( EntryStep.ShowTransactionSummary );
         }
 
-        #region cleanup
-
         /// <summary>
         /// Saves the transaction.
         /// </summary>
@@ -2565,6 +2610,8 @@ mission. We are so grateful for your commitment.</p>
             var financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
             financialScheduledTransactionService.Add( scheduledTransaction );
             rockContext.SaveChanges();
+
+            BindScheduledTransactions();
         }
 
         /// <summary>
@@ -2607,160 +2654,108 @@ mission. We are so grateful for your commitment.</p>
             }
         }
 
+        #endregion Transaction Entry Related
+
+        #region Navigation
+
         /// <summary>
-        /// Handles the Click event of the btnSaveAccount control.
+        /// Handles the Click event of the btnGiveNow control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnSaveAccount_Click( object sender, EventArgs e )
+        protected void btnGiveNow_Click( object sender, EventArgs e )
         {
-            var rockContext = new RockContext();
-
-            var targetPerson = GetTargetPerson( rockContext );
-
-            if ( pnlCreateLogin.Visible )
+            if ( caapPromptForAccountAmounts.IsValidAmountSelected() )
             {
-                string errorTitle = null;
-                string errorMessage = null;
-                if ( !UserLoginService.IsValidNewUserLogin( tbUserName.Text, tbPassword.Text, tbPasswordConfirm.Text, out errorTitle, out errorMessage ) )
+                nbPromptForAmountsWarning.Visible = false;
+                pnlPersonalInformation.Visible = false;
+                var totalAmount = caapPromptForAccountAmounts.AccountAmounts.Sum( a => a.Amount ?? 0.00M );
+
+                // get the accountId(s) that have an amount specified
+                var amountAccountIds = caapPromptForAccountAmounts.AccountAmounts
+                    .Where( a => a.Amount.HasValue && a.Amount != 0.00M ).Select( a => a.AccountId )
+                    .ToList();
+
+                var accountNames = new FinancialAccountService( new RockContext() )
+                    .GetByIds( amountAccountIds )
+                    .Select( a => a.PublicName )
+                    .ToList().AsDelimited( ", ", " and " );
+
+                lAmountSummaryAccounts.Text = accountNames;
+                lAmountSummaryAmount.Text = totalAmount.FormatAsCurrency();
+                if ( caapPromptForAccountAmounts.CampusId.HasValue )
                 {
-                    nbSaveAccountError.Title = errorTitle;
-                    nbSaveAccountError.Text = errorMessage;
-                    nbSaveAccountError.NotificationBoxType = NotificationBoxType.Validation;
-                    nbSaveAccountError.Visible = true;
-                    return;
+                    lAmountSummaryCampus.Text = CampusCache.Get( caapPromptForAccountAmounts.CampusId.Value ).Name;
                 }
 
-                var userLogin = UserLoginService.Create(
-                    rockContext,
-                    targetPerson,
-                    Rock.Model.AuthenticationServiceType.Internal,
-                    EntityTypeCache.Get( Rock.SystemGuid.EntityType.AUTHENTICATION_DATABASE.AsGuid() ).Id,
-                    tbUserName.Text,
-                    tbPassword.Text,
-                    false );
-
-                var mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson );
-                mergeFields.Add( "ConfirmAccountUrl", RootPath + "ConfirmAccount" );
-                mergeFields.Add( "Person", targetPerson );
-                mergeFields.Add( "User", userLogin );
-
-                var emailMessage = new RockEmailMessage( GetAttributeValue( AttributeKey.ConfirmAccountEmailTemplate ).AsGuid() );
-                emailMessage.AddRecipient( new RecipientData( targetPerson.Email, mergeFields ) );
-                emailMessage.AppRoot = ResolveRockUrl( "~/" );
-                emailMessage.ThemeRoot = ResolveRockUrl( "~~/" );
-                emailMessage.CreateCommunicationRecord = false;
-                emailMessage.Send();
-            }
-
-            var financialGatewayComponent = this.FinancialGatewayComponent;
-            var financialGateway = this.FinancialGateway;
-
-            var financialTransaction = new FinancialTransactionService( rockContext ).Get( hfTransactionGuid.Value.AsGuid() );
-
-            var gatewayPersonIdentifier = Rock.Security.Encryption.DecryptString( this.CustomerTokenEncrypted );
-
-            var savedAccount = new FinancialPersonSavedAccount();
-            var paymentDetail = financialTransaction.FinancialPaymentDetail;
-
-            savedAccount.PersonAliasId = targetPerson.PrimaryAliasId;
-            savedAccount.ReferenceNumber = gatewayPersonIdentifier;
-            savedAccount.Name = tbSaveAccount.Text;
-            savedAccount.TransactionCode = TransactionCode;
-            savedAccount.GatewayPersonIdentifier = gatewayPersonIdentifier;
-            savedAccount.FinancialGatewayId = financialGateway.Id;
-            savedAccount.FinancialPaymentDetail = new FinancialPaymentDetail();
-            savedAccount.FinancialPaymentDetail.AccountNumberMasked = paymentDetail.AccountNumberMasked;
-            savedAccount.FinancialPaymentDetail.CurrencyTypeValueId = paymentDetail.CurrencyTypeValueId;
-            savedAccount.FinancialPaymentDetail.CreditCardTypeValueId = paymentDetail.CreditCardTypeValueId;
-            savedAccount.FinancialPaymentDetail.NameOnCardEncrypted = paymentDetail.NameOnCardEncrypted;
-            savedAccount.FinancialPaymentDetail.ExpirationMonthEncrypted = paymentDetail.ExpirationMonthEncrypted;
-            savedAccount.FinancialPaymentDetail.ExpirationYearEncrypted = paymentDetail.ExpirationYearEncrypted;
-            savedAccount.FinancialPaymentDetail.BillingLocationId = paymentDetail.BillingLocationId;
-
-            var savedAccountService = new FinancialPersonSavedAccountService( rockContext );
-            savedAccountService.Add( savedAccount );
-            rockContext.SaveChanges();
-
-            cbSaveAccount.Visible = false;
-            tbSaveAccount.Visible = false;
-            pnlCreateLogin.Visible = false;
-            divSaveActions.Visible = false;
-
-            nbSaveAccountSuccess.Title = "Success";
-            nbSaveAccountSuccess.Text = "The account has been saved for future use";
-            nbSaveAccountSuccess.NotificationBoxType = NotificationBoxType.Success;
-            nbSaveAccountSuccess.Visible = true;
-        }
-
-        /// <summary>
-        /// Handles the SelectedIndexChanged event of the cblSelectBusiness control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void cblSelectBusiness_SelectedIndexChanged( object sender, EventArgs e )
-        {
-            UpdatePersonalInformationFromSelectedBusiness();
-        }
-
-        /// <summary>
-        /// Updates the Personal/Business info when giving as a business
-        /// </summary>
-        private void UpdatePersonalInformationFromSelectedBusiness()
-        {
-            var rockContext = new RockContext();
-            var personService = new PersonService( rockContext );
-            int? selectedBusinessPersonId = cblSelectBusiness.SelectedValue.AsIntegerOrNull();
-            Person personAsBusiness = null;
-            if ( selectedBusinessPersonId.HasValue )
-            {
-                personAsBusiness = personService.Get( selectedBusinessPersonId.Value );
-            }
-
-            if ( personAsBusiness == null )
-            {
-                tbBusinessName.Text = null;
-                acAddressBusiness.SetValues( null );
-                tbEmailBusiness.Text = string.Empty;
-                pnbPhoneBusiness.Text = string.Empty;
-            }
-            else
-            {
-                tbBusinessName.Text = personAsBusiness.LastName;
-
-                Guid addressTypeGuid = Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_WORK.AsGuid();
-                var addressTypeId = DefinedValueCache.GetId( addressTypeGuid );
-
-                GroupLocation businessLocation = null;
-                if ( addressTypeId.HasValue )
+                if ( UsingPersonSavedAccount() )
                 {
-                    businessLocation = new PersonService( rockContext ).GetFirstLocation( personAsBusiness.Id, addressTypeId.Value );
-                }
-
-                if ( businessLocation != null )
-                {
-                    acAddressBusiness.SetValues( businessLocation.Location );
+                    NavigateToStep( EntryStep.GetPersonalInformation );
                 }
                 else
                 {
-                    acAddressBusiness.SetValues( null );
+                    NavigateToStep( EntryStep.GetPaymentInfo );
                 }
+            }
+            else
+            {
+                nbPromptForAmountsWarning.Visible = true;
+                nbPromptForAmountsWarning.Text = "Please specify an amount";
             }
         }
 
         /// <summary>
-        /// Handles the CheckedChanged event of the tglIndividualOrBusiness control.
+        /// Handles the Click event of the btnGetPaymentInfoBack control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void tglIndividualOrBusiness_CheckedChanged( object sender, EventArgs e )
+        protected void btnGetPaymentInfoBack_Click( object sender, EventArgs e )
         {
-            bool givingAsBusiness = GivingAsBusiness();
-            pnlPersonInformationAsIndividual.Visible = !givingAsBusiness;
-            pnlPersonInformationAsBusiness.Visible = givingAsBusiness;
-            UpdatePersonalInformationFromSelectedBusiness();
+            NavigateToStep( EntryStep.PromptForAmounts );
         }
-    }
 
-    #endregion cleanup
+        /// <summary>
+        /// Handles the Click event of the btnGetPaymentInfoNext control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void btnGetPaymentInfoNext_Click( object sender, EventArgs e )
+        {
+            //// NOTE: the btnGetPaymentInfoNext button tells _hostedPaymentInfoControl to get a token via JavaScript
+            //// When _hostedPaymentInfoControl gets a token response, the _hostedPaymentInfoControl_TokenReceived event will be triggered
+            //// If _hostedPaymentInfoControl_TokenReceived gets a valid token, it will call btnGetPaymentInfoNext_Click
+
+            nbProcessTransactionError.Visible = false;
+            NavigateToStep( EntryStep.GetPersonalInformation );
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnPersonalInformationBack control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void btnPersonalInformationBack_Click( object sender, EventArgs e )
+        {
+            if ( UsingPersonSavedAccount() )
+            {
+                NavigateToStep( EntryStep.PromptForAmounts );
+            }
+            else
+            {
+                NavigateToStep( EntryStep.GetPaymentInfo );
+            }
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnPersonalInformationNext control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void btnPersonalInformationNext_Click( object sender, EventArgs e )
+        {
+            ProcessTransaction();
+        }
+
+        #endregion navigation
+    }
 }

@@ -322,12 +322,22 @@ namespace RockWeb.Blocks.Finance
             RepeaterItem riItem = ( RepeaterItem ) btnEdit.NamingContainer;
 
             HiddenField hfScheduledTransactionId = ( HiddenField ) riItem.FindControl( "hfScheduledTransactionId" );
+            var scheduledTransactionId = hfScheduledTransactionId.Value.AsIntegerOrNull();
             HiddenField hfTransfer = ( HiddenField ) riItem.FindControl( "hfTransfer" );
 
-            var financialScheduledTransaction = riItem.DataItem as FinancialScheduledTransaction;
+            if ( !scheduledTransactionId.HasValue )
+            {
+                return;
+            }
+
+            var financialScheduledTransaction = new FinancialScheduledTransactionService( new RockContext() ).Get( scheduledTransactionId.Value );
+            if ( financialScheduledTransaction == null )
+            {
+                return;
+            }
 
             Dictionary<string, string> qryParams = new Dictionary<string, string>();
-            qryParams.Add( "ScheduledTransactionId", hfScheduledTransactionId.Value );
+            qryParams.Add( "ScheduledTransactionId", scheduledTransactionId.Value.ToString() );
 
             // If this is a transfer, go to the TransactionEntry page/block
             if ( _transferToGatewayGuid != null && hfTransfer.Value == TRANSFER && !string.IsNullOrWhiteSpace( GetAttributeValue( AttributeKey.ScheduledTransactionEntryPage ) ) )
@@ -404,5 +414,4 @@ namespace RockWeb.Blocks.Finance
 
         #endregion
     }
-
 }

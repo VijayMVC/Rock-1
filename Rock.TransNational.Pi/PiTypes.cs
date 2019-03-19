@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Rock.Financial;
 
 /// <summary>
 /// from JSON structures on https://sandbox.gotnpgateway.com/docs/api/
@@ -126,6 +127,21 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "updated_at" )]
         public DateTime? UpdateDateTime { get; set; }
+    }
+
+
+    /// <summary>
+    /// https://sandbox.gotnpgateway.com/docs/api/#update-a-specific-customer-address
+    /// </summary>
+    public class UpdateCustomerAddressRequest : BillingAddress
+    {
+    }
+
+    /// <summary>
+    /// https://sandbox.gotnpgateway.com/docs/api/#update-a-specific-customer-address
+    /// </summary>
+    public class UpdateCustomerAddressResponse : BaseResponseData
+    {
     }
 
     /// <summary>
@@ -493,6 +509,9 @@ namespace Rock.TransNational.Pi
     /// </summary>
     public class BillingAddress
     {
+
+
+
         /// <summary>
         /// Gets or sets the identifier.
         /// </summary>
