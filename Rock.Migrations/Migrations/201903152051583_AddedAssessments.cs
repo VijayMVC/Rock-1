@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -32,71 +32,102 @@ namespace Rock.Migrations
             CreateTable(
                 "dbo.Assessment",
                 c => new
-                    {
-                        Id = c.Int(nullable: false, identity: true),
-                        PersonAliasId = c.Int(nullable: false),
-                        AssessmentTypeId = c.Int(nullable: false),
-                        RequesterPersonAliasId = c.Int(),
-                        RequestedDateTime = c.DateTime(),
-                        RequestedDueDate = c.DateTime(),
-                        Status = c.Int(nullable: false),
-                        CompletedDateTime = c.DateTime(),
-                        AssessmentResultData = c.String(),
-                        LastReminderDate = c.DateTime(),
-                        CreatedDateTime = c.DateTime(),
-                        ModifiedDateTime = c.DateTime(),
-                        CreatedByPersonAliasId = c.Int(),
-                        ModifiedByPersonAliasId = c.Int(),
-                        Guid = c.Guid(nullable: false),
-                        ForeignId = c.Int(),
-                        ForeignGuid = c.Guid(),
-                        ForeignKey = c.String(maxLength: 100),
-                    })
-                .PrimaryKey(t => t.Id)
-                .ForeignKey("dbo.AssessmentType", t => t.AssessmentTypeId, cascadeDelete: true)
-                .ForeignKey("dbo.PersonAlias", t => t.CreatedByPersonAliasId)
-                .ForeignKey("dbo.PersonAlias", t => t.ModifiedByPersonAliasId)
-                .ForeignKey("dbo.PersonAlias", t => t.PersonAliasId)
-                .ForeignKey("dbo.PersonAlias", t => t.RequesterPersonAliasId)
-                .Index(t => t.PersonAliasId)
-                .Index(t => t.AssessmentTypeId)
-                .Index(t => t.RequesterPersonAliasId)
-                .Index(t => t.CreatedByPersonAliasId)
-                .Index(t => t.ModifiedByPersonAliasId)
-                .Index(t => t.Guid, unique: true);
-            
+                {
+                    Id = c.Int( nullable: false, identity: true ),
+                    PersonAliasId = c.Int( nullable: false ),
+                    AssessmentTypeId = c.Int( nullable: false ),
+                    RequesterPersonAliasId = c.Int(),
+                    RequestedDateTime = c.DateTime(),
+                    RequestedDueDate = c.DateTime(),
+                    Status = c.Int( nullable: false ),
+                    CompletedDateTime = c.DateTime(),
+                    AssessmentResultData = c.String(),
+                    LastReminderDate = c.DateTime(),
+                    CreatedDateTime = c.DateTime(),
+                    ModifiedDateTime = c.DateTime(),
+                    CreatedByPersonAliasId = c.Int(),
+                    ModifiedByPersonAliasId = c.Int(),
+                    Guid = c.Guid( nullable: false ),
+                    ForeignId = c.Int(),
+                    ForeignGuid = c.Guid(),
+                    ForeignKey = c.String( maxLength: 100 ),
+                } )
+                .PrimaryKey( t => t.Id )
+                .ForeignKey( "dbo.AssessmentType", t => t.AssessmentTypeId, cascadeDelete: true )
+                .ForeignKey( "dbo.PersonAlias", t => t.CreatedByPersonAliasId )
+                .ForeignKey( "dbo.PersonAlias", t => t.ModifiedByPersonAliasId )
+                .ForeignKey( "dbo.PersonAlias", t => t.PersonAliasId )
+                .ForeignKey( "dbo.PersonAlias", t => t.RequesterPersonAliasId )
+                .Index( t => t.PersonAliasId )
+                .Index( t => t.AssessmentTypeId )
+                .Index( t => t.RequesterPersonAliasId )
+                .Index( t => t.CreatedByPersonAliasId )
+                .Index( t => t.ModifiedByPersonAliasId )
+                .Index( t => t.Guid, unique: true );
+
             CreateTable(
                 "dbo.AssessmentType",
                 c => new
-                    {
-                        Id = c.Int(nullable: false, identity: true),
-                        Title = c.String(nullable: false, maxLength: 100),
-                        Description = c.String(nullable: false),
-                        AssessmentPath = c.String(nullable: false, maxLength: 250),
-                        AssessmentResultsPath = c.String(maxLength: 250),
-                        IsActive = c.Boolean(nullable: false),
-                        RequiresRequest = c.Boolean(nullable: false),
-                        MinimumDaysToRetake = c.Int(nullable: false),
-                        ValidDuration = c.Int(nullable: false),
-                        IsSystem = c.Boolean(nullable: false),
-                        CreatedDateTime = c.DateTime(),
-                        ModifiedDateTime = c.DateTime(),
-                        CreatedByPersonAliasId = c.Int(),
-                        ModifiedByPersonAliasId = c.Int(),
-                        Guid = c.Guid(nullable: false),
-                        ForeignId = c.Int(),
-                        ForeignGuid = c.Guid(),
-                        ForeignKey = c.String(maxLength: 100),
-                    })
-                .PrimaryKey(t => t.Id)
-                .ForeignKey("dbo.PersonAlias", t => t.CreatedByPersonAliasId)
-                .ForeignKey("dbo.PersonAlias", t => t.ModifiedByPersonAliasId)
-                .Index(t => t.CreatedByPersonAliasId)
-                .Index(t => t.ModifiedByPersonAliasId)
-                .Index(t => t.Guid, unique: true);
-            
+                {
+                    Id = c.Int( nullable: false, identity: true ),
+                    Title = c.String( nullable: false, maxLength: 100 ),
+                    Description = c.String( nullable: false ),
+                    AssessmentPath = c.String( nullable: false, maxLength: 250 ),
+                    AssessmentResultsPath = c.String( maxLength: 250 ),
+                    IsActive = c.Boolean( nullable: false ),
+                    RequiresRequest = c.Boolean( nullable: false ),
+                    MinimumDaysToRetake = c.Int( nullable: false ),
+                    ValidDuration = c.Int( nullable: false ),
+                    IsSystem = c.Boolean( nullable: false ),
+                    CreatedDateTime = c.DateTime(),
+                    ModifiedDateTime = c.DateTime(),
+                    CreatedByPersonAliasId = c.Int(),
+                    ModifiedByPersonAliasId = c.Int(),
+                    Guid = c.Guid( nullable: false ),
+                    ForeignId = c.Int(),
+                    ForeignGuid = c.Guid(),
+                    ForeignKey = c.String( maxLength: 100 ),
+                } )
+                .PrimaryKey( t => t.Id )
+                .ForeignKey( "dbo.PersonAlias", t => t.CreatedByPersonAliasId )
+                .ForeignKey( "dbo.PersonAlias", t => t.ModifiedByPersonAliasId )
+                .Index( t => t.CreatedByPersonAliasId )
+                .Index( t => t.ModifiedByPersonAliasId )
+                .Index( t => t.Guid, unique: true );
+
+            AddAssessmentType( "DISC Test", "/DISC", SystemGuid.AssessmentType.DISC );
+            AddAssessmentType( "Spiritual Gifts Assessment", "/GiftsAssessment", SystemGuid.AssessmentType.GIFTS );
+            AddAssessmentType( "Conflict Profile", "/ConflictProfile", SystemGuid.AssessmentType.CONFLICT );
+            AddAssessmentType( "Emotional Intelligence", "/EmotionalIntelligence", SystemGuid.AssessmentType.EQ );
+            AddAssessmentType( "Motivators", "/Motivators", SystemGuid.AssessmentType.MOTIVATORS );
         }
-        
+
+        private void AddAssessmentType( string title, string assessmentPath, string guid )
+        {
+            Sql( string.Format( @"INSERT 	INTO
+	[dbo].[AssessmentType]
+	(
+		[Title],
+        [Description],
+		[AssessmentPath],
+		[IsActive], 
+		[RequiresRequest],
+		[MinimumDaysToRetake],
+		[ValidDuration],
+		[IsSystem], 
+		[Guid])
+    VALUES       
+	('{0}',
+     '',
+     '{1}',
+      1,
+      0,
+      365,
+      730,
+      1,
+     '{2}')", title, assessmentPath, guid ) );
+        }
+
         /// <summary>
         /// Operations to be performed during the downgrade process.
         /// </summary>
