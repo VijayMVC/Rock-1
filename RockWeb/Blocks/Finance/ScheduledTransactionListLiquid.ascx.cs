@@ -85,13 +85,14 @@ namespace RockWeb.Blocks.Finance
     [LinkedPage(
         "Scheduled Transaction Edit Page",
         Key = AttributeKey.ScheduledTransactionEditPage,
-        Description = "The page used to update in existing scheduled transaction for Gateways that don't support a hosted payment interface.",
+        Description = "The page used to update an existing scheduled transaction for Gateways that don't support a hosted payment interface.",
         Order = 9 )]
 
     [LinkedPage(
         "Scheduled Transaction Edit Page for Hosted Gateways",
         Key = AttributeKey.ScheduledTransactionEditPageHosted,
-        Description = "The page used to update in existing scheduled transaction for Gateways that support a hosted payment interface.",
+        Description = "The page used to update an existing scheduled transaction for Gateways that support a hosted payment interface.",
+        IsRequired = false,
         Order = 10 )]
 
     public partial class ScheduledTransactionListLiquid : RockBlock

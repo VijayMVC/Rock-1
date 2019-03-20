@@ -44,13 +44,14 @@ namespace RockWeb.Blocks.Finance
     [LinkedPage(
         "Update Page for Gateways",
         Key = AttributeKey.UpdatePageUnhosted,
-        Description = "The page used to update in existing scheduled transaction for Gateways that don't support a hosted payment interface.",
+        Description = "The page used to update an existing scheduled transaction for Gateways that don't support a hosted payment interface.",
         Order = 0 )]
 
     [LinkedPage(
         "Update Page for Hosted Gateways",
         Key = AttributeKey.UpdatePageHosted,
-        Description = "The page used to update in existing scheduled transaction for Gateways that support a hosted payment interface.",
+        Description = "The page used to update an existing scheduled transaction for Gateways that support a hosted payment interface.",
+        IsRequired = false,
         Order = 0 )]
 
     #endregion Block Attributes
