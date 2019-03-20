@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Rock.Web.Cache;
+using Rock.Web.UI.Controls;
 
 namespace Rock.Financial
 {
@@ -192,6 +193,20 @@ namespace Rock.Financial
 
                 return result;
             }
+        }
+
+        /// <summary>
+        /// Updates the address fields from an address control.
+        /// </summary>
+        /// <param name="addressControl">The address control.</param>
+        public void UpdateAddressFieldsFromAddressControl( AddressControl addressControl )
+        {
+            Street1 = addressControl.Street1;
+            Street2 = addressControl.Street2;
+            City = addressControl.City;
+            State = addressControl.State;
+            PostalCode = addressControl.PostalCode;
+            Country = addressControl.Country;
         }
 
         /// <summary>

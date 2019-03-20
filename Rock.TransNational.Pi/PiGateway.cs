@@ -236,7 +236,7 @@ namespace Rock.TransNational.Pi
         /// <typeparam name="T"></typeparam>
         /// <param name="paymentInfo">The payment information.</param>
         /// <returns></returns>
-        private T CreateBillingAddress<T>( PaymentInfo paymentInfo ) where T: BillingAddress, new()
+        private T CreateBillingAddress<T>( PaymentInfo paymentInfo ) where T : BillingAddress, new()
         {
             var result = new T
             {
@@ -254,7 +254,7 @@ namespace Rock.TransNational.Pi
             };
 
             // if the Gateway requires FirstName, just put '-' if no FirstName was provided
-            if ( result.FirstName.IsNotNullOrWhiteSpace() )
+            if ( result.FirstName.IsNullOrWhiteSpace() )
             {
                 result.FirstName = "-";
             }
@@ -504,11 +504,13 @@ namespace Rock.TransNational.Pi
         /// <summary>
         /// Updates the billing plan BillingFrequency, BillingCycleInterval, BillingDays and Duration
         /// </summary>
-        /// <param name="billingPlanParameters">The billing plan parameters.</param>
+        /// <param name="subscriptionRequestParameters">The subscription request parameters.</param>
         /// <param name="scheduleTransactionFrequencyValueGuid">The schedule transaction frequency value unique identifier.</param>
-        private static void SetSubscriptionBillingPlanParameters( SubscriptionRequestParameters subscriptionRequestParameters, Guid scheduleTransactionFrequencyValueGuid )
+        /// <param name="startDateLocal">The start date local.</param>
+        private static void SetSubscriptionBillingPlanParameters( SubscriptionRequestParameters subscriptionRequestParameters, Guid scheduleTransactionFrequencyValueGuid, DateTime startDateLocal )
         {
             BillingPlanParameters billingPlanParameters = subscriptionRequestParameters as BillingPlanParameters;
+            billingPlanParameters.NextBillDateUTC = GetBestUTCStartDate( startDateLocal );
             BillingFrequency? billingFrequency = null;
             int billingCycleInterval = 1;
             string billingDays = null;
@@ -551,7 +553,7 @@ namespace Rock.TransNational.Pi
                 billingFrequency = BillingFrequency.daily;
                 billingDays = "7";
             }
-
+            
             billingPlanParameters.BillingFrequency = billingFrequency;
             billingPlanParameters.BillingCycleInterval = billingCycleInterval;
             billingPlanParameters.BillingDays = billingDays;
@@ -667,6 +669,9 @@ namespace Rock.TransNational.Pi
         /// <returns></returns>
         private SubscriptionResponse UpdateSubscription( string gatewayUrl, string apiKey, string subscriptionId, SubscriptionRequestParameters subscriptionParameters )
         {
+            // ToDo: This currently does not work due to an issue on the PiGateway side. Waiting to see if it can be fixed.
+
+
             var restClient = new RestClient( gatewayUrl );
             RestRequest restRequest = new RestRequest( $"api/recurring/subscription/{subscriptionId}", Method.POST );
             restRequest.AddHeader( "Authorization", apiKey );
@@ -747,7 +752,11 @@ namespace Rock.TransNational.Pi
             get
             {
                 var values = new List<DefinedValueCache>();
-                values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME ) );
+
+                // Todo: See if PiGateway supports onetime scheduled transactions
+                //values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME ) );
+
+
                 values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_WEEKLY ) );
                 values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_BIWEEKLY ) );
                 values.Add( DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_TWICEMONTHLY ) );
@@ -916,22 +925,16 @@ namespace Rock.TransNational.Pi
 
             var customerId = referencedPaymentInfo.GatewayPersonIdentifier;
 
-            // we want to convert the startDate as a UTC Date, so get the UTC Date of the StartDate
-            // Add a day to the LocalDate before converting to UTC so make sure the UTC Date is on or after the specified date
-            // Since UTC is 7 hours ahead (AZ time), we need to add a day so that it doesn't post on 5pm on the date *before* the expected date
-            var startDateUTC = DateTime.SpecifyKind( schedule.StartDate, DateTimeKind.Local ).AddDays( 1 ).ToUniversalTime().Date;
-
             SubscriptionRequestParameters subscriptionParameters = new SubscriptionRequestParameters
             {
                 Customer = new SubscriptionCustomer { Id = customerId },
                 PlanId = null,
                 Description = $"Subscription for PersonId: {schedule.PersonId }",
-                NextBillDateUTC = startDateUTC,
                 Duration = 0,
                 Amount = paymentInfo.Amount
             };
 
-            SetSubscriptionBillingPlanParameters( subscriptionParameters, schedule.TransactionFrequencyValue.Guid );
+            SetSubscriptionBillingPlanParameters( subscriptionParameters, schedule.TransactionFrequencyValue.Guid, schedule.StartDate );
 
             var subscriptionResult = this.CreateSubscription( this.GetGatewayUrl( financialGateway ), this.GetPrivateApiKey( financialGateway ), subscriptionParameters );
             var subscriptionId = subscriptionResult.Data?.Id;
@@ -975,6 +978,22 @@ namespace Rock.TransNational.Pi
         }
 
         /// <summary>
+        /// Gets the best UTC start date.
+        /// </summary>
+        /// <param name="startDateLocal">The start date local.</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// We want to convert the startDate as a UTC Date, so get the UTC Date of the StartDate
+        /// Add a day to the LocalDate before converting to UTC so make sure the UTC Date is on or after the specified date
+        /// Since UTC is 7 hours ahead (AZ time), we need to add a day so that it doesn't post on 5pm on the date *before* the expected date
+        /// </remarks>
+        private static DateTime GetBestUTCStartDate( DateTime startDateLocal )
+        {
+            // Note: see above /// remarks
+            return DateTime.SpecifyKind( startDateLocal, DateTimeKind.Local ).AddDays( 1 ).ToUniversalTime().Date;
+        }
+
+        /// <summary>
         /// Updates the scheduled payment.
         /// </summary>
         /// <param name="scheduledTransaction">The scheduled transaction.</param>
@@ -983,16 +1002,24 @@ namespace Rock.TransNational.Pi
         /// <returns></returns>
         public override bool UpdateScheduledPayment( FinancialScheduledTransaction scheduledTransaction, PaymentInfo paymentInfo, out string errorMessage )
         {
+            var referencedPaymentInfo = paymentInfo as ReferencePaymentInfo;
+            if ( referencedPaymentInfo == null )
+            {
+                throw new ReferencePaymentInfoRequired();
+            }
+
             var subscriptionId = scheduledTransaction.GatewayScheduleId;
 
             SubscriptionRequestParameters subscriptionParameters = new SubscriptionRequestParameters
             {
-                NextBillDateUTC = scheduledTransaction.StartDate.ToUniversalTime(),
+                Customer = new SubscriptionCustomer { Id = referencedPaymentInfo.GatewayPersonIdentifier },
                 Duration = 0,
-                Amount = paymentInfo.Amount
+                Amount = referencedPaymentInfo.Amount
             };
 
-            SetSubscriptionBillingPlanParameters( subscriptionParameters, scheduledTransaction.TransactionFrequencyValue.Guid );
+            var transactionFrequencyGuid = DefinedValueCache.Get( scheduledTransaction.TransactionFrequencyValueId ).Guid;
+
+            SetSubscriptionBillingPlanParameters( subscriptionParameters, transactionFrequencyGuid, scheduledTransaction.StartDate );
 
             FinancialGateway financialGateway = scheduledTransaction.FinancialGateway;
 
@@ -1006,7 +1033,7 @@ namespace Rock.TransNational.Pi
                 return false;
             }
 
-            var  updateCustomerAddressResponse = this.UpdateCustomerAddress( gatewayUrl, apiKey, scheduledTransaction.TransactionCode, paymentInfo );
+            var updateCustomerAddressResponse = this.UpdateCustomerAddress( gatewayUrl, apiKey, scheduledTransaction.TransactionCode, referencedPaymentInfo );
 
             if ( !updateCustomerAddressResponse.IsSuccessStatus() )
             {

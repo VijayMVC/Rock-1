@@ -7,35 +7,44 @@
         <asp:HiddenField ID="hfFinancialGatewayId" runat="server" />
         <Rock:HiddenFieldWithClass ID="hfPaymentInfoVisable" CssClass="js-add-payment-visible" runat="server" />
 
-        <h1>ScheduledTransactionEditV2</h1>
+        <Rock:NotificationBox ID="nbMessage" runat="server" Visible="false" />
 
+        <%-- Prompt for Changes to Scheduled Transaction --%>
+        <asp:Panel ID="pnlPromptForChanges" runat="server">
+            <Rock:CampusAccountAmountPicker ID="caapPromptForAccountAmounts" runat="server" />
 
-        <Rock:CampusAccountAmountPicker ID="caapPromptForAccountAmounts" runat="server" />
+            <Rock:RockDropDownList ID="ddlFrequency" runat="server" FormGroupCssClass="margin-t-md" />
 
-        <Rock:RockDropDownList ID="ddlFrequency" runat="server" FormGroupCssClass=" margin-t-md" />
-
-        <div class="margin-t-md">
-            <Rock:DatePicker ID="dtpStartDate" runat="server" Label="Next Gift" />
-        </div>
-
-
-        <Rock:RockControlWrapper ID="rcsPaymentMethod" runat="server" Label="Payment Method">
-            <div class="form-control-group">
-                <Rock:RockDropDownList ID="ddlPersonSavedAccount" CssClass="input-width-xxl" runat="server" />
-                <a class="js-add-payment btn btn-default">Add</a>
+            <div class="margin-t-md">
+                <Rock:DatePicker ID="dtpStartDate" runat="server" Label="Next Gift" />
             </div>
-        </Rock:RockControlWrapper>
 
+            <Rock:RockControlWrapper ID="rcsPaymentMethod" runat="server" Label="Payment Method">
+                <div class="form-control-group">
+                    <Rock:RockDropDownList ID="ddlPersonSavedAccount" CssClass="input-width-xxl" runat="server" />
+                    <a class="js-add-payment btn btn-default">Add</a>
+                </div>
+            </Rock:RockControlWrapper>
 
-        <div class="js-add-payment-new margin-b-md" style="border-style: solid; border-color: red; display: none">
-            <Rock:NotificationBox ID="nbPaymentTokenError" runat="server" NotificationBoxType="Validation" Visible="false" />
-            <Rock:DynamicPlaceholder ID="phHostedPaymentControl" runat="server" />
-        </div>
+            <div class="js-add-payment-new margin-b-md" style="border-style: solid; border-color: red; display: none">
+                <Rock:NotificationBox ID="nbPaymentTokenError" runat="server" NotificationBoxType="Validation" Visible="false" />
+                <Rock:DynamicPlaceholder ID="phHostedPaymentControl" runat="server" />
 
-        <div class="actions">
-            <%-- NOTE: When in New Payment mode, btnUpdateScheduledPayment ends up telling the HostedPaymentControl (via the js-submit-hostedpaymentinfo hook) to request a token, which will cause the _hostedPaymentInfoControl_TokenReceived postback --%>
-            <Rock:BootstrapButton ID="btnUpdateScheduledPayment" runat="server" Text="Update" CssClass="btn btn-primary js-submit-hostedpaymentinfo" OnClick="btnUpdateScheduledPayment_Click" DataLoadingText="Updating..." />
-        </div>
+                <Rock:AddressControl ID="acBillingAddress" runat="server" UseStateAbbreviation="true" UseCountryAbbreviation="false" Label="" ShowAddressLine2="false" />
+            </div>
+
+            <Rock:NotificationBox ID="nbUpdateScheduledPaymentWarning" runat="server" NotificationBoxType="Validation" Visible="false" />
+
+            <div class="actions">
+                <%-- NOTE: When in New Payment mode, btnUpdateScheduledPayment ends up telling the HostedPaymentControl (via the js-submit-hostedpaymentinfo hook) to request a token, which will cause the _hostedPaymentInfoControl_TokenReceived postback --%>
+                <Rock:BootstrapButton ID="btnUpdateScheduledPayment" runat="server" Text="Update" CssClass="btn btn-primary js-submit-hostedpaymentinfo" OnClick="btnUpdateScheduledPayment_Click" DataLoadingText="Updating..." />
+            </div>
+        </asp:Panel>
+
+        <%-- Transaction Summary (step 4) --%>
+        <asp:Panel ID="pnlTransactionSummary" runat="server" Visible="false">
+            <asp:Literal ID="lTransactionSummaryHTML" runat="server" />
+        </asp:Panel>
 
         <script type="text/javascript">
 

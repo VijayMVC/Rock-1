@@ -731,6 +731,16 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "amount" )]
         public int AmountCents { get; set; }
+
+        /// <summary>
+        /// Gets or sets the next bill date in UTC time
+        /// </summary>
+        /// <value>
+        /// The next bill date.
+        /// </value>
+        [JsonProperty( "next_bill_date" )]
+        [JsonConverter( typeof( PiGatewayUTCIsoDateConverter ) )]
+        public DateTime? NextBillDateUTC { get; set; }
     }
 
     /// <summary>
@@ -1514,16 +1524,6 @@ namespace Rock.TransNational.Pi
         /// </value>
         [JsonProperty( "customer" )]
         public SubscriptionCustomer Customer { get; set; }
-
-        /// <summary>
-        /// Gets or sets the next bill date in UTC time
-        /// </summary>
-        /// <value>
-        /// The next bill date.
-        /// </value>
-        [JsonProperty( "next_bill_date" )]
-        [JsonConverter( typeof( PiGatewayUTCIsoDateConverter ) )]
-        public DateTime? NextBillDateUTC { get; set; }
     }
 
     /// <summary>

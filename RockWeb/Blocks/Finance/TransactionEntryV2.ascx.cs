@@ -2075,10 +2075,22 @@ mission. We are so grateful for your commitment.</p>
 
             if ( oneTime )
             {
+                if ( FinancialGatewayComponent.SupportedPaymentSchedules.Any( a => a.Guid == Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME.AsGuid() ) == false )
+                {
+                    // Gateway doesn't support OneTime as a Scheduled, so it must be posted today
+                    dtpStartDate.SelectedDate = RockDateTime.Now.Date;
+                    dtpStartDate.Visible = false;
+                }
+                else
+                {
+                    dtpStartDate.Visible = true;
+                }
+
                 dtpStartDate.Label = string.Format( "Process {0} On", giftTerm );
             }
             else
             {
+                dtpStartDate.Visible = true;
                 dtpStartDate.Label = "Start Giving On";
             }
 
@@ -2283,7 +2295,14 @@ mission. We are so grateful for your commitment.</p>
         private bool IsScheduledTransaction()
         {
             int oneTimeFrequencyId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME.AsGuid() ) ?? 0;
-            return ddlFrequency.SelectedValue.AsInteger() != oneTimeFrequencyId;
+            if ( ddlFrequency.SelectedValue.AsInteger() != oneTimeFrequencyId )
+            {
+                return true;
+            }
+            else
+            {
+                return dtpStartDate.SelectedDate > RockDateTime.Now.Date;
+            }
         }
 
         /// <summary>
@@ -2299,15 +2318,11 @@ mission. We are so grateful for your commitment.</p>
 
             var paymentInfo = new ReferencePaymentInfo
             {
-                Street1 = acAddress.Street1,
-                Street2 = acAddress.Street2,
-                City = acAddress.City,
-                State = acAddress.State,
-                PostalCode = acAddress.PostalCode,
-                Country = acAddress.Country,
                 Email = tbEmail.Text,
                 Phone = PhoneNumber.FormattedNumber( pnbPhone.CountryCode, pnbPhone.Number, true )
             };
+
+            paymentInfo.UpdateAddressFieldsFromAddressControl( acAddress );
 
             if ( givingAsBusiness )
             {
@@ -2665,6 +2680,27 @@ mission. We are so grateful for your commitment.</p>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void btnGiveNow_Click( object sender, EventArgs e )
         {
+            var giftTerm = this.GetAttributeValue( AttributeKey.GiftTerm );
+
+            if ( this.IsScheduledTransaction() )
+            {
+                if ( dtpStartDate.SelectedDate <= RockDateTime.Today )
+                {
+                    nbPromptForAmountsWarning.Visible = true;
+                    nbPromptForAmountsWarning.Text = string.Format( "When scheduling a {0}, make sure the starting date is in the future (after today)", giftTerm );
+                    return;
+                }
+            }
+            else
+            {
+                if ( dtpStartDate.SelectedDate <= RockDateTime.Today )
+                {
+                    nbPromptForAmountsWarning.Visible = true;
+                    nbPromptForAmountsWarning.Text = string.Format( "Make sure the process date is not in the past", giftTerm );
+                    return;
+                }
+            }
+
             if ( caapPromptForAccountAmounts.IsValidAmountSelected() )
             {
                 nbPromptForAmountsWarning.Visible = false;
