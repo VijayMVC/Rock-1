@@ -230,7 +230,7 @@
 
             Sys.Application.add_load(function () {
 
-                $('.js-submit-hostedpaymentinfo').off().on('click', (function () {
+                $('.js-submit-hostedpaymentinfo').off().on('click', function () {
                     <%=HostPaymentInfoSubmitScript%>
                 });
 

@@ -695,6 +695,13 @@ mission. We are so grateful for your commitment.</p>
             public const string AccountGlCodesOptions = "AccountGlCodes";
 
             public const string AmountLimit = "AmountLimit";
+
+            /// <summary>
+            /// The frequency options in the form of &Frequency=DefinedValueId^UserEditable
+            /// </summary>
+            public const string FrequencyOptions = "Frequency";
+
+            public const string StartDate = "StartDate";
         }
 
         #endregion
@@ -1012,6 +1019,32 @@ mission. We are so grateful for your commitment.</p>
                 HideConfigurationMessage();
             }
 
+            bool allowScheduledTransactions = this.GetAttributeValue( AttributeKey.AllowScheduledTransactions ).AsBoolean();
+            if ( allowScheduledTransactions )
+            {
+                SetFrequencyOptions();
+            }
+
+            var startDate = PageParameter( PageParameterKey.StartDate ).AsDateTime();
+            if ( startDate.HasValue && startDate.Value > RockDateTime.Today )
+            {
+                dtpStartDate.SelectedDate = startDate.Value;
+            }
+            else
+            {
+                dtpStartDate.SelectedDate = RockDateTime.Today;
+            }
+
+            pnlScheduledTransaction.Visible = allowScheduledTransactions;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Sets the schedule frequency options.
+        /// </summary>
+        private void SetFrequencyOptions()
+        {
             var supportedFrequencies = this.FinancialGatewayComponent.SupportedPaymentSchedules;
             foreach ( var supportedFrequency in supportedFrequencies )
             {
@@ -1025,11 +1058,35 @@ mission. We are so grateful for your commitment.</p>
                 ddlFrequency.Items.Insert( 0, new ListItem( oneTimeFrequency.Value, oneTimeFrequency.Id.ToString() ) );
             }
 
-            ddlFrequency.SelectedValue = oneTimeFrequency.Id.ToString();
-            dtpStartDate.SelectedDate = RockDateTime.Today;
-            pnlScheduledTransaction.Visible = this.GetAttributeValue( AttributeKey.AllowScheduledTransactions ).AsBoolean();
+            DefinedValueCache pageParameterFrequency = null;
+            bool frequencyEditable = true;
+            string frequencyParameterValue = this.PageParameter( PageParameterKey.FrequencyOptions );
+            if ( frequencyParameterValue.IsNotNullOrWhiteSpace() )
+            {
+                // if there is a Frequency specified in the Url, set the to the default, and optionally make it ReadOnly
+                string[] frequencyOptions = frequencyParameterValue.Split( '^' );
+                var defaultFrequencyValueId = frequencyOptions[0].AsIntegerOrNull();
+                if ( frequencyOptions.Length >= 2 )
+                {
+                    frequencyEditable = frequencyOptions[0].AsBooleanOrNull() ?? true;
+                }
+                if ( defaultFrequencyValueId.HasValue )
+                {
+                    pageParameterFrequency = DefinedValueCache.Get( defaultFrequencyValueId.Value );
+                }
+            }
 
-            return true;
+            if ( !frequencyEditable && pageParameterFrequency != null )
+            {
+                ddlFrequency.Enabled = false;
+            }
+            else
+            {
+                ddlFrequency.Enabled = true;
+            }
+
+
+            ddlFrequency.SetValue( pageParameterFrequency ?? oneTimeFrequency );
         }
 
         /// <summary>
@@ -2693,7 +2750,7 @@ mission. We are so grateful for your commitment.</p>
             }
             else
             {
-                if ( dtpStartDate.SelectedDate <= RockDateTime.Today )
+                if ( dtpStartDate.SelectedDate < RockDateTime.Today )
                 {
                     nbPromptForAmountsWarning.Visible = true;
                     nbPromptForAmountsWarning.Text = string.Format( "Make sure the process date is not in the past", giftTerm );

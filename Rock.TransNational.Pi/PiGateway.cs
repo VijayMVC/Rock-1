@@ -289,7 +289,7 @@ namespace Rock.TransNational.Pi
 
             var response = restClient.Execute( restRequest );
 
-            var createCustomerResponse = JsonConvert.DeserializeObject<CustomerResponse>( response.Content );
+            var createCustomerResponse = ParseResponse<CustomerResponse>( response );
             return createCustomerResponse;
         }
 
