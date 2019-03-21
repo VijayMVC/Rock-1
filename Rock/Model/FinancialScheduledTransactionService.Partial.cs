@@ -129,7 +129,7 @@ namespace Rock.Model
                 {
                     var result = gateway.GetScheduledPaymentStatus( scheduledTransaction, out errorMessages );
 
-                    var lastTransactionDate = new FinancialTransactionService( rockContext).Queryable().Where( a=> a.ScheduledTransactionId.HasValue && a.ScheduledTransactionId == scheduledTransaction.Id ).Max( t => t.TransactionDateTime );
+                    var lastTransactionDate = new FinancialTransactionService( rockContext ).Queryable().Where( a => a.ScheduledTransactionId.HasValue && a.ScheduledTransactionId == scheduledTransaction.Id ).Max( t => t.TransactionDateTime );
                     scheduledTransaction.NextPaymentDate = gateway.GetNextPaymentDate( scheduledTransaction, lastTransactionDate );
 
                     return result;
@@ -483,35 +483,30 @@ namespace Rock.Model
                                 gateway.BatchDayOfWeek );
 
                             var batchChanges = new List<string>();
-                            if ( batch.Id != 0 )
+                            if ( batch.Id == 0 )
                             {
-                                initialControlAmounts.AddOrIgnore( batch.Guid, batch.ControlAmount );
-
-                                transaction.BatchId = batch.Id;
-                                financialTransactionService.Add( transaction );
+                                // get a batch Id
+                                rockContext.SaveChanges();
                             }
-                            else
-                            {
-                                // TODO: NO!
 
-                                batch.Transactions.Add( transaction );
-                            }
+                            initialControlAmounts.AddOrIgnore( batch.Guid, batch.ControlAmount );
+
+                            transaction.BatchId = batch.Id;
+                            financialTransactionService.Add( transaction );
+
 
                             batch.ControlAmount += transaction.TotalAmount;
-
-                            // TODO: NO!
-                            batch.Transactions.Add( transaction );
 
                             if ( receiptEmail.HasValue && txnAmount > 0.0M )
                             {
                                 newTransactions.Add( transaction );
                             }
 
-                            if ( 
-                                payment.IsFailure && 
-                                ( 
-                                    ( txnAmount == 0.0M && scheduledTransaction != null && originalTxn == null ) || 
-                                    ( txnAmount < 0.0M && originalTxn != null ) 
+                            if (
+                                payment.IsFailure &&
+                                (
+                                    ( txnAmount == 0.0M && scheduledTransaction != null && originalTxn == null ) ||
+                                    ( txnAmount < 0.0M && originalTxn != null )
                                 ) )
                             {
                                 failedPayments.Add( transaction );
@@ -545,20 +540,24 @@ namespace Rock.Model
                         totalAlreadyDownloaded++;
                     }
 
-                    foreach ( var txn in txns
-                        .Where( t =>
-                            t.Status != payment.Status ||
-                            t.StatusMessage != payment.StatusMessage ||
-                            t.IsSettled != payment.IsSettled ||
-                            t.SettledGroupId != payment.SettledGroupId ||
-                            t.SettledDate != payment.SettledDate ) )
+                    if ( txns != null )
                     {
-                        txn.IsSettled = payment.IsSettled;
-                        txn.SettledGroupId = payment.SettledGroupId;
-                        txn.SettledDate = payment.SettledDate;
-                        txn.Status = payment.Status;
-                        txn.StatusMessage = payment.StatusMessage;
-                        totalStatusChanges++;
+
+                        foreach ( var txn in txns
+                            .Where( t =>
+                                t.Status != payment.Status ||
+                                t.StatusMessage != payment.StatusMessage ||
+                                t.IsSettled != payment.IsSettled ||
+                                t.SettledGroupId != payment.SettledGroupId ||
+                                t.SettledDate != payment.SettledDate ) )
+                        {
+                            txn.IsSettled = payment.IsSettled;
+                            txn.SettledGroupId = payment.SettledGroupId;
+                            txn.SettledDate = payment.SettledDate;
+                            txn.Status = payment.Status;
+                            txn.StatusMessage = payment.StatusMessage;
+                            totalStatusChanges++;
+                        }
                     }
 
                     rockContext.SaveChanges();
