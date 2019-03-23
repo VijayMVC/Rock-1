@@ -275,6 +275,7 @@
     <Compile Include="Attribute\AssetStorageSystemFieldAttribute.cs" />
     <Compile Include="Attribute\AttributeCategoryFieldAttribute.cs" />
     <Compile Include="Attribute\AttributeFieldAttribute.cs" />
+    <Compile Include="Attribute\AssessmentTypesFieldAttribute.cs" />
     <Compile Include="Attribute\CheckListFieldAttribute.cs" />
     <Compile Include="Attribute\ColorFieldAttribute.cs" />
     <Compile Include="Attribute\ComparisonFieldAttribute.cs" />
@@ -389,6 +390,7 @@
     <Compile Include="Field\FieldVisibilityRules.cs" />
     <Compile Include="Field\Types\AssetFieldType.cs" />
     <Compile Include="Field\Types\AssetStorageProviderFieldType.cs" />
+    <Compile Include="Field\Types\AssessmentTypesFieldType.cs" />
     <Compile Include="Jobs\PostV90DataMigrationsForDISC.cs" />
     <Compile Include="Financial\IWebhookGatewayComponent.cs" />
     <Compile Include="Lava\Shortcodes\ScheduledContent.cs" />
@@ -2135,6 +2137,7 @@
     <Compile Include="Workflow\ActionCategoryAttribute.cs" />
     <Compile Include="Workflow\ActionComponent.cs" />
     <Compile Include="Workflow\ActionContainer.cs" />
+    <Compile Include="Workflow\Action\Assessments\CreateAssessmentRequest.cs" />
     <Compile Include="Workflow\Action\BackgroundCheck\BackgroundCheckRequest.cs" />
     <Compile Include="Workflow\Action\CheckIn\CalculateLastAttended.cs" />
     <Compile Include="Workflow\Action\CheckIn\CheckInActionComponent.cs" />
