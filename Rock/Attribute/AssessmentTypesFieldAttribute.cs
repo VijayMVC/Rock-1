@@ -25,23 +25,7 @@ namespace Rock.Attribute
     public class AssessmentTypesFieldAttribute : SelectFieldAttribute
     {
         private const string INCLUDE_INACTIVE_KEY = "includeInactive";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AssessmentTypesFieldAttribute" /> class.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="description">The description.</param>
-        /// <param name="required">if set to <c>true</c> [required].</param>
-        /// <param name="defaultAssessmentGuids">The default Assessment guids.</param>
-        /// <param name="category">The category.</param>
-        /// <param name="order">The order.</param>
-        /// <param name="key">The key.</param>
-        public AssessmentTypesFieldAttribute( string name = "Assessments", string description = "", bool required = true, string defaultAssessmentGuids = "", string category = "", int order = 0, string key = null )
-            : base( name, description, required, defaultAssessmentGuids, category, order, key, typeof( Rock.Field.Types.AssessmentTypesFieldType ).FullName )
-        {
-            FieldConfigurationValues.Add( INCLUDE_INACTIVE_KEY, new Field.ConfigurationValue( "False" ) );
-        }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="AssessmentTypesFieldAttribute" /> class.
         /// </summary>
