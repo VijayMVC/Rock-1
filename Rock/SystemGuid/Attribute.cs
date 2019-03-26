@@ -109,6 +109,46 @@ namespace Rock.SystemGuid
         public const string PERSON_SPIRITUAL_GIFTS_LAST_SAVE_DATE = "3668547C-3DC4-450B-B92D-4B98A693A371";
 
         /// <summary>
+        /// The person attribute for the conflict approach winning
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_WINNING = "7147F706-388E-45E6-BE21-893FC7D652AA";
+
+        /// <summary>
+        /// The person attribute for the conflict approach resolving 
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_RESOLVING = "5B811EAC-51B2-41F2-A55A-C966D9DB05EE";
+
+        /// <summary>
+        /// The person attribute for the conflict approach compromising  
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_COMPROMISING = "817D6B13-E4AA-4E93-8547-FE711A0065F2";
+
+        /// <summary>
+        /// The person attribute for the conflict approach avoiding  
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_AVOIDING = "071A8EFA-AD1C-436A-8E1E-23D215617004";
+
+        /// <summary>
+        /// The person attribute for the conflict approach yielding  
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_YIELDING = "D30A33AD-7A60-43E0-84DA-E23600156BF7";
+
+        /// <summary>
+        /// The person attribute for the conflict approach passive  
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_PASSIVE = "404A64FB-7396-4896-9C94-84DE21E995CA";
+
+        /// <summary>
+        /// The person attribute for the conflict approach aggressive  
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_AGGRESSIVE = "6DE5878D-7CDB-404D-93A7-27CFF5E98C3B";
+
+        /// <summary>
+        /// The person attribute for the conflict approach engaged  
+        /// </summary>
+        public const string PERSON_CONFLICT_APPROACH_ENGAGED = "33235605-D8BB-4C1E-B231-6F085970A14F";
+
+        /// <summary>
         /// The family attribute for storing a family's checkin identifiers
         /// </summary>
         ///
