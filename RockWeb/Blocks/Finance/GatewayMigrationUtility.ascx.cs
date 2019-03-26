@@ -20,6 +20,7 @@ using System.ComponentModel;
 using System.Data.Entity;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using CsvHelper;
@@ -27,7 +28,6 @@ using Rock;
 using Rock.Data;
 using Rock.Financial;
 using Rock.Model;
-using Rock.Web.Cache;
 using Rock.Web.UI;
 
 namespace RockWeb.Blocks.Finance
@@ -74,7 +74,34 @@ namespace RockWeb.Blocks.Finance
 
         #endregion
 
-        #region Events
+        #region Methods
+
+        /// <summary>
+        /// Shows the details.
+        /// </summary>
+        protected void ShowDetails()
+        {
+            var rockContext = new RockContext();
+            var financialGatewayService = new FinancialGatewayService( rockContext );
+            var activeGatewayList = financialGatewayService.Queryable().Where( a => a.IsActive == true ).AsNoTracking().ToList();
+            var piGateways = activeGatewayList.Where( a => a.GetGatewayComponent() is Rock.TransNational.Pi.PiGateway ).ToList();
+            ddlPiGateway.Items.Clear();
+            foreach ( var piGateway in piGateways )
+            {
+                ddlPiGateway.Items.Add( new ListItem( piGateway.Name, piGateway.Id.ToString() ) );
+            }
+
+            var nmiGateways = activeGatewayList.Where( a => a.GetGatewayComponent() is Rock.NMI.Gateway ).ToList();
+            ddlNMIGateway.Items.Clear();
+            foreach ( var nmiGateway in nmiGateways )
+            {
+                ddlNMIGateway.Items.Add( new ListItem( nmiGateway.Name, nmiGateway.Id.ToString() ) );
+            }
+        }
+
+        #endregion
+
+        #region Customer Value Related
 
         /// <summary>
         /// Handles the FileUploaded event of the fuCustomerVaultImportFile control.
@@ -83,23 +110,49 @@ namespace RockWeb.Blocks.Finance
         /// <param name="e">The <see cref="Rock.Web.UI.Controls.FileUploaderEventArgs"/> instance containing the event data.</param>
         protected void fuCustomerVaultImportFile_FileUploaded( object sender, Rock.Web.UI.Controls.FileUploaderEventArgs e )
         {
-            btnImport.Enabled = true;
-            
+            btnImportCustomerVault.Enabled = true;
         }
 
-        private class ImportRecord
+        /// <summary>
+        /// 
+        /// </summary>
+        private class CustomerValueImportRecord
         {
+            /// <summary>
+            /// Gets or sets the NMI customer identifier.
+            /// </summary>
+            /// <value>
+            /// The NMI customer identifier.
+            /// </value>
             public string NMICustomerId { get; set; }
+
+            /// <summary>
+            /// Gets or sets the Pi customer identifier.
+            /// </summary>
+            /// <value>
+            /// The pi customer identifier.
+            /// </value>
             public string PiCustomerId { get; set; }
         }
 
         /// <summary>
-        /// Handles the Click event of the btnImport control.
+        /// Handles the FileUploaded event of the fuCustomerVaultImportFile control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnImport_Click( object sender, EventArgs e )
+        protected void fuCustomerVaultImportFile_FileUploaded( object sender, EventArgs e )
         {
+            btnImportCustomerVault.Enabled = true;
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnImportCustomerVault control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void btnImportCustomerVault_Click( object sender, EventArgs e )
+        {
+
             BinaryFile binaryFile = null;
             var rockContext = new RockContext();
             var binaryFileService = new BinaryFileService( rockContext );
@@ -119,7 +172,7 @@ namespace RockWeb.Blocks.Finance
                 CsvReader csvReader = new CsvReader( stringReader );
                 csvReader.Configuration.HasHeaderRecord = false;
 
-                nmiToPiCustomerIdLookup = csvReader.GetRecords<ImportRecord>().ToDictionary( k => k.NMICustomerId, v=> v.PiCustomerId );
+                nmiToPiCustomerIdLookup = csvReader.GetRecords<CustomerValueImportRecord>().ToDictionary( k => k.NMICustomerId, v => v.PiCustomerId );
 
                 // TODO
                 //binaryFileService.Delete( binaryFile );
@@ -129,7 +182,6 @@ namespace RockWeb.Blocks.Finance
                 // TODO
             }
 
-            var financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
             var financialGatewayService = new FinancialGatewayService( rockContext );
             var nmiGatewayID = ddlNMIGateway.SelectedValue.AsInteger();
             var nmiGateway = financialGatewayService.Get( nmiGatewayID );
@@ -137,11 +189,64 @@ namespace RockWeb.Blocks.Finance
             var piGatewayId = ddlPiGateway.SelectedValue.AsInteger();
             var piGateway = financialGatewayService.Get( piGatewayId );
             var piGatewayComponent = piGateway.GetGatewayComponent() as IHostedGatewayComponent;
+
+            var financialPersonSavedAccountService = new FinancialPersonSavedAccountService( rockContext );
+            var nmiPersonSavedAccountList = financialPersonSavedAccountService.Queryable().Where( a => a.FinancialGatewayId == nmiGatewayID ).ToList();
+
+            var personSavedAccountResultsBuilder = new StringBuilder();
+
+            foreach ( var nmiPersonSavedAccount in nmiPersonSavedAccountList )
+            {
+                var nmiCustomerId = nmiPersonSavedAccount.GatewayPersonIdentifier ?? nmiPersonSavedAccount.ReferenceNumber;
+                var piCustomerId = nmiToPiCustomerIdLookup.GetValueOrNull(nmiCustomerId);
+
+                // NOTE: NMI Customer IDs created after the Vault import won't have a piCustomerId
+
+                personSavedAccountResultsBuilder.AppendFormat(
+                    "financialPersonSavedAccountId: {0} nmiCustomerId: '{1}' (GatewayPersonIdentifier: '{2}', ReferenceNumber: '{3}'), piCustomerId: '{4}'" + Environment.NewLine,
+                    nmiPersonSavedAccount.Id,
+                    nmiCustomerId,
+                    nmiPersonSavedAccount.GatewayPersonIdentifier,
+                    nmiPersonSavedAccount.ReferenceNumber,
+                    piCustomerId
+                    );
+            }
+
+            ceImportCustomerVaultResults.Text = personSavedAccountResultsBuilder.ToString();
+
+        }
+
+        #endregion Customer Value Related
+
+        #region Schedule Import Related
+
+        /// <summary>
+        /// Handles the FileUploaded event of the fuScheduleImportFile control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="Rock.Web.UI.Controls.FileUploaderEventArgs"/> instance containing the event data.</param>
+        protected void fuScheduleImportFile_FileUploaded( object sender, Rock.Web.UI.Controls.FileUploaderEventArgs e )
+        {
+            btnImportScheduleImport.Enabled = true;
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnImportScheduleImport control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void btnImportScheduleImport_Click( object sender, EventArgs e )
+        {
+            /// ToDo: Figure out a way to get a ScheduledFinancialTransaction's NMI CustomerId (or Pi CustomerId). Currently unable to do so without help from NMI/Pi. Waiting on Email response.
+
+
+            /*
+            var financialScheduledTransactionService = new FinancialScheduledTransactionService( rockContext );
+            var scheduledTransactions = financialScheduledTransactionService.Queryable().Where( a => a.FinancialGatewayId == nmiGatewayID ).ToList();
             var earliestPiStartDate = piGatewayComponent.GetEarliestScheduledStartDate( piGateway );
             var oneTimeFrequencyId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_ONE_TIME.AsGuid() );
-            string errorMessage;
 
-            var scheduledTransactions = financialScheduledTransactionService.Queryable().Where( a => a.FinancialGatewayId == nmiGatewayID ).ToList();
+            string errorMessage;
             foreach ( var scheduledTransaction in scheduledTransactions.Where( a => a.IsActive ) )
             {
                 // get the latest status to get an updated NextStartDate
@@ -169,37 +274,9 @@ namespace RockWeb.Blocks.Finance
 
                     var tempFinancialScheduledTransaction = piGatewayComponent.AddScheduledPayment( piGateway, paymentSchedule, referencePaymentInfo, out errorMessage );
                 }
-            }
+            }*/
         }
 
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Shows the details.
-        /// </summary>
-        protected void ShowDetails()
-        {
-            var rockContext = new RockContext();
-            var financialGatewayService = new FinancialGatewayService( rockContext );
-            var activeGatewayList = financialGatewayService.Queryable().Where( a => a.IsActive == true ).AsNoTracking().ToList();
-            var piGateways = activeGatewayList.Where( a => a.GetGatewayComponent() is Rock.TransNational.Pi.PiGateway ).ToList();
-            ddlPiGateway.Items.Clear();
-            foreach ( var piGateway in piGateways )
-            {
-                ddlPiGateway.Items.Add( new ListItem( piGateway.Name, piGateway.Id.ToString() ) );
-            }
-
-            var nmiGateways = activeGatewayList.Where( a => a.GetGatewayComponent() is Rock.NMI.Gateway ).ToList();
-            ddlNMIGateway.Items.Clear();
-            foreach ( var nmiGateway in nmiGateways )
-            {
-                ddlNMIGateway.Items.Add( new ListItem( nmiGateway.Name, nmiGateway.Id.ToString() ) );
-            }
-        }
-
-        #endregion
-        
+        #endregion Schedule Import Related
     }
 }

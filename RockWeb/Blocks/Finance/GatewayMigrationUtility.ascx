@@ -17,12 +17,21 @@
                     <div class="col-md-12">
                         <Rock:RockDropDownList ID="ddlNMIGateway" Label="NMI Gateway" runat="server" />
                         <Rock:RockDropDownList ID="ddlPiGateway" Label="Pi Gateway" runat="server" />
-                        <h2>NMI ScheduledTransactions to PI Scheduled Transactions Test</h2>
-                        <Rock:FileUploader ID="fuCustomerVaultImportFile" runat="server" Label="Select Customer Vault Import File" IsBinaryFile="true" UploadAsTemporary="true"  DisplayMode="DropZone" OnFileUploaded="fuCustomerVaultImportFile_FileUploaded" />
-                        <asp:LinkButton ID="btnImport" runat="server" CssClass="btn btn-primary" OnClick="btnImport_Click" Enabled="false">btnImport</asp:LinkButton>
-                        <Rock:NotificationBox ID="nbImportResult" runat="server" NotificationBoxType="Success" />
 
-                        <Rock:CodeEditor ID="ceImportResults" runat="server" EditorMode="JavaScript" Label="Import Results" />
+                        <h2>Migrate FinancialPersonSavedAccount from NMI to Pi</h2>
+                        <Rock:FileUploader ID="fuCustomerVaultImportFile" runat="server" Label="Select Customer Vault Import File" IsBinaryFile="true" UploadAsTemporary="true"  DisplayMode="DropZone" OnFileUploaded="fuCustomerVaultImportFile_FileUploaded" />
+                        <asp:LinkButton ID="btnImportCustomerVault" runat="server" CssClass="btn btn-primary" OnClick="btnImportCustomerVault_Click" Enabled="false">btnImportCustomerVault</asp:LinkButton>
+                        <Rock:NotificationBox ID="nbImportCustomerVaultResult" runat="server" NotificationBoxType="Success" />
+
+                        <Rock:CodeEditor ID="ceImportCustomerVaultResults" runat="server" EditorMode="JavaScript" Label="Import CustomerVault Results" />
+
+                        <h2>#TODO# Migration FinancialScheduledTransaction from NMI to Pi#</h2>
+
+                        <Rock:FileUploader ID="fuScheduleImportFile" runat="server" Label="Select Schedule Import File" IsBinaryFile="true" UploadAsTemporary="true"  DisplayMode="DropZone" OnFileUploaded="fuScheduleImportFile_FileUploaded" />
+                        <asp:LinkButton ID="btnImportScheduleImport" runat="server" CssClass="btn btn-primary" OnClick="btnImportScheduleImport_Click" Enabled="false">btnImportScheduleImport</asp:LinkButton>
+                        <Rock:NotificationBox ID="nbImportScheduleImportResult" runat="server" NotificationBoxType="Success" />
+
+                        <Rock:CodeEditor ID="ceImportScheduleImportResults" runat="server" EditorMode="JavaScript" Label="Import Schedule Import Results" />
                     </div>
                 </div>
                 
