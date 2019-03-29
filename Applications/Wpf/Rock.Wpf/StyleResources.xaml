@@ -220,14 +220,14 @@
     </Style>
 
     <!-- Label style: Alert-->
-    <Style x:Key="stackPanelWarningtStyle" TargetType="StackPanel">
+    <Style x:Key="stackPanelWarningStyle" TargetType="StackPanel">
         <Setter Property="Background" Value="#fffae5" />
     </Style>
 
     <Style x:Key="stackPanelAlertStyle" TargetType="StackPanel">
         <Setter Property="Background" Value="#fcf2f1" />
     </Style>
-    <Style x:Key="stackPanelInfotStyle" TargetType="StackPanel">
+    <Style x:Key="stackPanelInfoStyle" TargetType="StackPanel">
         <Setter Property="Background" Value="#ecf9fd" />
     </Style>
 
@@ -236,7 +236,7 @@
         <Setter Property="BorderThickness" Value="0,2,0,0" />
     </Style>
 
-    <Style x:Key="borderAlertgStyle" TargetType="Border">
+    <Style x:Key="borderAlertStyle" TargetType="Border">
         <Setter Property="BorderBrush" Value="Red" />
         <Setter Property="BorderThickness" Value="0,2,0,0" />
     </Style>
@@ -244,16 +244,16 @@
         <Setter Property="BorderBrush" Value="#009ce3" />
         <Setter Property="BorderThickness" Value="0,2,0,0" />
     </Style>
-    
-    <Style x:Key="alertCaptionSytle" TargetType="Label">
+
+    <Style x:Key="alertCaptionStyle" TargetType="Label">
         <Setter Property="Foreground" Value="#e55235" />
     </Style>
-    <Style x:Key="InfoCaptionSytle" TargetType="Label">
+    <Style x:Key="InfoCaptionStyle" TargetType="Label">
         <Setter Property="Foreground" Value=" #31708f" />
         <Setter Property="FontFamily" Value="Roboto-Medium"/>
         <Setter Property="FontWeight" Value="Medium" />
     </Style>
-    <Style x:Key="WarningCaptionSytle" TargetType="Label">
+    <Style x:Key="WarningCaptionStyle" TargetType="Label">
         <Setter Property="Foreground" Value="#e55235" />
         <Setter Property="FontFamily" Value="Roboto-Medium"/>
         <Setter Property="FontWeight" Value="Medium" />

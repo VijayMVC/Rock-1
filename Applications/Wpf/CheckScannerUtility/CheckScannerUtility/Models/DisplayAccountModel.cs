@@ -5,11 +5,11 @@ using System.ComponentModel;
 
 namespace Rock.Apps.CheckScannerUtility.Models
 {
+    [System.Diagnostics.DebuggerDisplay( "{Id}:{AccountDisplayName}|{IsAccountChecked}" )]
     public class DisplayAccountModel : INotifyPropertyChanged
     {
         private bool _accountIsChecked;
         private string _accountDisplayName;
-        private ObservableCollection<DisplayAccountModel> _children;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -26,7 +26,7 @@ namespace Rock.Apps.CheckScannerUtility.Models
         }
         public bool IsAccountChecked
         {
-            get { return _accountIsChecked; }
+            get => _accountIsChecked;
             set
             {
                 _accountIsChecked = value;
@@ -34,16 +34,9 @@ namespace Rock.Apps.CheckScannerUtility.Models
             }
         }
 
-        public ObservableCollection<DisplayAccountModel> Children
-        {
-            get { return _children; }
-            set
-            {
-                _children = value; 
-            }
-        }
+        public ObservableCollection<DisplayAccountModel> Children { get; set; }
 
-    
+
 
     }
 }

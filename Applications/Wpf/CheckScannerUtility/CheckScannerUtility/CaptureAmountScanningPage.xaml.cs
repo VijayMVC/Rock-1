@@ -249,7 +249,7 @@ namespace Rock.Apps.CheckScannerUtility
         private void BtnNext_Click(object sender, System.Windows.RoutedEventArgs e)
         {
 
-            if (_currentscannedDocInfo != null && !HasAmount() && this.lblAlertCaption.Visibility != Visibility.Visible)
+            if (_currentscannedDocInfo != null && !HasAmount() && this.lblAlertCaptionMessage.Visibility != Visibility.Visible)
             {
                 ShowNoAmountMessage();
                 return;
@@ -1140,7 +1140,7 @@ namespace Rock.Apps.CheckScannerUtility
                 if (rockConfig.RequireControlAmount)
                 {
 
-                    ScanningPageUtility.BatchAmount = selectedBatch.ControlAmount;
+                    ScanningPageUtility.BatchControlAmount = selectedBatch.ControlAmount;
                     this.pbControlAmounts.Minimum = 0;
                     this.pbControlAmounts.Maximum = 100;
                     this.spControlAmountProgressBar.Visibility = Visibility.Visible;
@@ -1155,7 +1155,7 @@ namespace Rock.Apps.CheckScannerUtility
                 if (rockConfig.RequireControlItemCount)
                 {
                     //Control Amount
-                    ScanningPageUtility.BatchAmount = selectedBatch.ControlAmount;
+                    ScanningPageUtility.BatchControlAmount = selectedBatch.ControlAmount;
                     //Control Item Count
                     ScanningPageUtility.ItemsToProcess = selectedBatch.ControlItemCount;
                     this.pbControlItems.Minimum = 0;
@@ -1198,29 +1198,22 @@ namespace Rock.Apps.CheckScannerUtility
             this.lblAlertSubMessage.Content = string.Empty;
             this.spAlert.Visibility = Visibility.Visible;
             this.spAlertMessage.Visibility = Visibility.Visible;
-            this.lblAlertCaption.Visibility = Visibility.Visible;
             this.lblAlertCaptionMessage.Visibility = Visibility.Visible;
             this.lblAlertSubMessage.Visibility = Visibility;
             Style captionStyle = null;
             switch (messageType)
             {
                 case "Warning":
-                    spAlert.Style = Application.Current.Resources["stackPanelWarningtStyle"] as Style;
-                    lblAlertCaption.Style = Application.Current.Resources["WarningCaptionSytle"] as Style;
-                    lblAlertCaption.Content = "Warning!";
+                    spAlert.Style = Application.Current.Resources["stackPanelWarningStyle"] as Style;
                     borderAlertBorder.Style = Application.Current.Resources["borderWarningStyle"] as Style;
                     break;
                 case "Alert":
                     spAlert.Style = Application.Current.Resources["stackPanelAlertStyle"] as Style;
-                    lblAlertCaption.Style = Application.Current.Resources["alertCaptionSytle"] as Style;
-                    lblAlertCaption.Content = "Alert!";
-                    borderAlertBorder.Style = Application.Current.Resources["borderAlertgStyle"] as Style;
+                    borderAlertBorder.Style = Application.Current.Resources["borderAlertStyle"] as Style;
                     lblAlertSubMessage.Style = Application.Current.Resources["AlertTextStyle"] as Style;
                     break;
                 case "Info":
-                    spAlert.Style = Application.Current.Resources["stackPanelInfotStyle"] as Style;
-                    lblAlertCaption.Style = Application.Current.Resources["InfoCaptionSytle"] as Style;
-                    lblAlertCaption.Content = "Info!";
+                    spAlert.Style = Application.Current.Resources["stackPanelInfoStyle"] as Style;
                     borderAlertBorder.Style = Application.Current.Resources["borderInfoStyle"] as Style;
                     lblAlertSubMessage.Style = Application.Current.Resources["labelStyleAlertInfo"] as Style;
                     break;
@@ -1455,7 +1448,6 @@ namespace Rock.Apps.CheckScannerUtility
             this.lblAlertSubMessage.Content = Visibility.Collapsed;
             this.spAlert.Visibility = Visibility.Collapsed;
             this.spAlertMessage.Visibility = Visibility.Collapsed;
-            this.lblAlertCaption.Visibility = Visibility.Collapsed;
             this.lblAlertCaptionMessage.Visibility = Visibility.Collapsed;
             this.lblAlertSubMessage.Visibility = Visibility.Collapsed;
 
@@ -1477,20 +1469,19 @@ namespace Rock.Apps.CheckScannerUtility
             if (spControlAmountProgressBar.Visibility == Visibility.Visible)
             {
                 var currentTotals = ScanningPageUtility.TotalAmountScanned + SumAllAccountEntries();
-                if (ScanningPageUtility.TotalAmountScanned > ScanningPageUtility.BatchAmount)
+                if (ScanningPageUtility.TotalAmountScanned > ScanningPageUtility.BatchControlAmount)
                 {
                     pbControlAmounts.Value = 100;
                     SetAmountlegendInvalid(true);
                 }
 
-                var amountRemaining = string.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", ScanningPageUtility.BatchAmount - ScanningPageUtility.TotalAmountScanned);
-                var currentTotal = string.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", currentTotals);
-                this.lblAmountRemaininValue.Content = string.Format("{0} of {1}", currentTotal, amountRemaining);
+                var amountRemaining = ScanningPageUtility.BatchControlAmount - ScanningPageUtility.TotalAmountScanned;
+                this.lblAmountRemainingValue.Content = $"{currentTotals:C} of {ScanningPageUtility.BatchControlAmount:C}";
             }
 
             if (remainingItems == 0)
             {
-                if (ScanningPageUtility.BatchAmount != ScanningPageUtility.TotalAmountScanned)
+                if (ScanningPageUtility.BatchControlAmount != ScanningPageUtility.TotalAmountScanned)
                 {
                     SetAmountlegendInvalid(true);
                 }
@@ -1510,7 +1501,7 @@ namespace Rock.Apps.CheckScannerUtility
         private void SetAmountlegendInvalid(bool isInvalid)
         {
             var defaultbrush = (SolidColorBrush)(new BrushConverter().ConvertFrom("#ee7725"));
-            lblAmountRemaininValue.Foreground = isInvalid ? Brushes.Red : defaultbrush;
+            lblAmountRemainingValue.Foreground = isInvalid ? Brushes.Red : defaultbrush;
             pbControlAmounts.Foreground = isInvalid ? Brushes.Red : defaultbrush;
         }
         #endregion

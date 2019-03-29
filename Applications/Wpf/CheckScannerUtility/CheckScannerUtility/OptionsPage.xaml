@@ -7,11 +7,10 @@
       xmlns:Themes="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
     x:Class="Rock.Apps.CheckScannerUtility.OptionsPage"
       mc:Ignorable="d"
-      d:DesignHeight="680"
-      d:DesignWidth="900"
+      d:DesignHeight="850"
+      d:DesignWidth="960"
       Title="Check Scanner - Options"
       Loaded="Page_Loaded"
-      SizeChanged="Page_SizeChanged"
       >
     <Page.Resources>
         <HierarchicalDataTemplate  DataType="{x:Type models:DisplayAccountModel}" ItemsSource="{Binding Children}">
@@ -21,9 +20,14 @@
     <Page.Style>
         <StaticResource ResourceKey="pageBackground"/>
     </Page.Style>
-    <StackPanel Background="{StaticResource PageBackgroundBrush}">
+    <Grid Background="{StaticResource PageBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="180" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <Border x:Name="brdScannerInfo"
                 Visibility="Visible"
+                Grid.Row="0"
                 Margin="20" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
             <StackPanel  Background="{StaticResource PanelBackgroundBrush}">
                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
@@ -45,13 +49,14 @@
                 Background="White"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="1"
+                Grid.Row="1"
                 Visibility="Visible"
                 Margin="20,0,20,20">
-            <Grid VerticalAlignment="Top">
+            <Grid VerticalAlignment="Stretch">
                 <Grid.RowDefinitions>
-                    <RowDefinition x:Name="rowPanelHeader" />
-                    <RowDefinition />
-                    <RowDefinition />
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
@@ -137,28 +142,28 @@
                         </CheckBox>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Grid.Row="1" Grid.Column="1"  VerticalAlignment="Stretch">
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto">
-                        <StackPanel VerticalAlignment="Stretch"  HorizontalAlignment="Stretch" Height="365">
-                            <Label x:Name="lblCapturingAccountAmounts"
-                                 Style="{StaticResource labelStyle}" Content="Accounts for Capturing Batches"/>
-                            <TreeView x:Name="icAccountsForBatches" Margin="0,5,40,0" BorderThickness="0" Height="300" ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                <TreeView.ItemContainerStyle>
-                                    <Style>
-                                        <Setter Property="TreeViewItem.IsExpanded" Value="True"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Type}" Value="menu">
-                                                <Setter Property="TreeViewItem.IsSelected" Value="True"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TreeView.ItemContainerStyle>
-                                <TreeViewItem ItemsSource="{Binding}" Header="{Binding AccountDisplayName}"/>
-                            </TreeView>
-                        </StackPanel>
-                    </ScrollViewer>
+                <StackPanel Grid.Row="1" Grid.Column="1">
+
+                    <StackPanel Height="350">
+                        <Label x:Name="lblCapturingAccountAmounts"
+                                Style="{StaticResource labelStyle}" Content="Accounts for Capturing Batches"/>
+                        <TreeView x:Name="tvAccountsForBatches" Margin="0,5,40,0" BorderThickness="0" Height="300" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <TreeView.ItemContainerStyle>
+                                <Style>
+                                    <Setter Property="TreeViewItem.IsExpanded" Value="True"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsAccountChecked}" Value="menu">
+                                            <Setter Property="TreeViewItem.IsSelected" Value="True"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                            <TreeViewItem ItemsSource="{Binding}" Header="{Binding AccountDisplayName}"/>
+                        </TreeView>
+                    </StackPanel>
+
                 </StackPanel>
-                <StackPanel Grid.Row="2"   Grid.ColumnSpan="2">
+                <StackPanel Grid.Row="2"   Grid.ColumnSpan="2" Margin="5">
                     <Label x:Name="lblAdvancedInfo"
                        Style="{StaticResource labelStyleAlertInfo}" Content="Advanced: Sensitivity and Plurality can be tuned from 1-255. Increase sensitivity and/or lower plurality if you are getting too many bad reads. Normally these can be left blank which will use the default of 128."/>
                     <Grid>
@@ -168,7 +173,7 @@
                             <ColumnDefinition Width="3*"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0"
-                                Orientation="Vertical">
+                                Orientation="Vertical" >
                             <Label x:Name="lblSensitivity"
                                Style="{StaticResource labelStyle}" Content="Sensitivity"/>
                             <TextBox x:Name="txtSensitivity"
@@ -187,7 +192,7 @@
                     </Grid>
                     <Label x:Name="lblAlert"
                        Style="{StaticResource labelStyleAlert}"
-                       Content="ERROR: "/>
+                       Content="ERROR: Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something "/>
                     <StackPanel Orientation="Horizontal"
                             Margin="0, 8">
                         <Button Style="{StaticResource buttonStylePrimary}"
@@ -195,6 +200,7 @@
                             Margin="4,4,0,0"
                             Content="Save"
                             HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
                             Click="btnSave_Click" />
                         <Button Style="{StaticResource buttonStyleSecondary}"
                             x:Name="btnCancel"
@@ -202,11 +208,12 @@
                             Content="Cancel"
                             IsCancel="True"
                             HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
                             Click="btnCancel_Click" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
 
         </Border>
-    </StackPanel>
+    </Grid>
 </Page>

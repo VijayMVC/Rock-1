@@ -1077,23 +1077,17 @@ namespace Rock.Apps.CheckScannerUtility
             switch (messageType)
             {
                 case "Warning":
-                    spAlert.Style = Application.Current.Resources["stackPanelWarningtStyle"] as Style;
-                    lblAlertCaption.Style = Application.Current.Resources["WarningCaptionSytle"] as Style;
-                    lblAlertCaption.Content = "Warning!";
+                    spAlert.Style = Application.Current.Resources["stackPanelWarningStyle"] as Style;
                     borderAlertBorder.Style = Application.Current.Resources["borderWarningStyle"] as Style;
                     lblAlertSubMessage.Style = Application.Current.Resources["WarningTextStyle"] as Style;
                     break;
                 case "Alert":
                     spAlert.Style = Application.Current.Resources["stackPanelAlertStyle"] as Style;
-                    lblAlertCaption.Style = Application.Current.Resources["alertCaptionSytle"] as Style;
-                    lblAlertCaption.Content = "Alert!";
-                    borderAlertBorder.Style = Application.Current.Resources["borderAlertgStyle"] as Style;
+                    borderAlertBorder.Style = Application.Current.Resources["borderAlertStyle"] as Style;
                     lblAlertSubMessage.Style = Application.Current.Resources["AlertTextStyle"] as Style;
                     break;
                 case "Info":
-                    spAlert.Style = Application.Current.Resources["stackPanelInfotStyle"] as Style;
-                    lblAlertCaption.Style = Application.Current.Resources["InfoCaptionSytle"] as Style;
-                    lblAlertCaption.Content = "Info!";
+                    spAlert.Style = Application.Current.Resources["stackPanelInfoStyle"] as Style;
                     borderAlertBorder.Style = Application.Current.Resources["borderInfoStyle"] as Style;
                     lblAlertSubMessage.Style = Application.Current.Resources["labelStyleAlertInfo"] as Style;
                     break;

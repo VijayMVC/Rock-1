@@ -78,7 +78,6 @@
                     <Border Name="borderAlertBorder"  Visibility="Collapsed" Margin="10,0,0,10">
                         <StackPanel>
                             <StackPanel Name="spAlert" >
-                                <Label Name="lblAlertCaption" HorizontalAlignment="Left" />
                                 <Label Name="lblAlertSubMessage" Visibility="Visible" BorderThickness="0" MinHeight="30"  Background="Transparent"/>
                             </StackPanel>
                             <StackPanel Name="pnlPromptForUpload" Margin="5" Visibility="Collapsed">
@@ -88,7 +87,7 @@
                                     x:Name="btnSkipAndContinue"
                                     Style="{StaticResource buttonStylePrimary}"
                                     Content="Skip"
-                                    HorizontalAlignment="Left"
+                                    HorizontalAlignment="Left" 
                                     Click="btnSkipAndContinue_Click" />
                                     <Button Margin="8"
                                     x:Name="btnIgnoreAndUpload"

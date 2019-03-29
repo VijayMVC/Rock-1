@@ -75,7 +75,6 @@
                                 <Border Name="borderAlertBorder" Visibility="Collapsed"  Margin="10,10,0,15">
                                     <StackPanel>
                                         <StackPanel Name="spAlert" Visibility="Visible" >
-                                            <Label Name="lblAlertCaption" Margin="2,0" HorizontalAlignment="Left" Visibility="Collapsed"/>
                                             <Label Name="lblAlertSubMessage" TextBlock.TextAlignment="Left" Visibility="Collapsed" Margin="0,0,0,5" BorderThickness="0" Background="Transparent"/>
                                         </StackPanel>
                                         <StackPanel Name="pnlPromptForUpload" Margin="5" Visibility="Collapsed">
@@ -142,7 +141,7 @@
                                                 <ColumnDefinition  Name="colAccountLegend" />
                                             </Grid.ColumnDefinitions>
                                             <Label Grid.Column="0" HorizontalAlignment="Left"  VerticalAlignment="Center" Name="lblControlAmounts"  Style="{StaticResource labelStyleCaption}">Control Amounts</Label>
-                                            <Label Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,5,0,5" Name="lblAmountRemaininValue" Style="{StaticResource labelStyleSmall}"  />
+                                            <Label Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,5,0,5" Name="lblAmountRemainingValue" Style="{StaticResource labelStyleSmall}"  />
                                         </Grid>
                                         <ProgressBar Name="pbControlAmounts"
                              Foreground="#ee7725"

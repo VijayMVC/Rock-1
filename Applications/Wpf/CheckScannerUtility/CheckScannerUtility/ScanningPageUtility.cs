@@ -25,8 +25,8 @@ namespace Rock.Apps.CheckScannerUtility
             ItemsSkipped = 0;
             ItemsScanned = 0;
             TotalAmountScanned = 0;
-            BatchAmount = 0;
-    }
+            BatchControlAmount = 0;
+        }
 
         public static BatchPage batchPage { get; set; }
         public static string DebugLogFilePath { get; set; }
@@ -42,7 +42,7 @@ namespace Rock.Apps.CheckScannerUtility
         public static int ItemsScanned { get; set; }
 
         public static decimal TotalAmountScanned { get; set; }
-        public static decimal BatchAmount { get;set; }
+        public static decimal BatchControlAmount { get; set; }
         public static List<FinancialTransaction> CurrentFinacialTransactions { get; set; }
         public static List<FinancialAccount> Accounts { get; set; }
 
@@ -281,8 +281,8 @@ namespace Rock.Apps.CheckScannerUtility
 
         }
 
-    
-        private static void AddFinancialTransactionDetailForEachAccount( List<DisplayAccountValueModel> accounts,FinancialTransaction financialTransaction )
+
+        private static void AddFinancialTransactionDetailForEachAccount( List<DisplayAccountValueModel> accounts, FinancialTransaction financialTransaction )
         {
             var tranactionDetails = new List<FinancialTransactionDetail>();
             if ( financialTransaction.TransactionDetails == null )
@@ -292,7 +292,7 @@ namespace Rock.Apps.CheckScannerUtility
             foreach ( var displayAccount in accounts )
             {
                 var account = displayAccount.Account;
-                financialTransaction.TransactionDetails.Add( new FinancialTransactionDetail { AccountId = account.Id,Amount=(decimal) displayAccount.Amount,Guid=Guid.NewGuid()} ); 
+                financialTransaction.TransactionDetails.Add( new FinancialTransactionDetail { AccountId = account.Id, Amount = ( decimal ) displayAccount.Amount, Guid = Guid.NewGuid() } );
             }
         }
 
@@ -343,7 +343,7 @@ namespace Rock.Apps.CheckScannerUtility
             KeepScanning = false;
             System.Diagnostics.Debug.WriteLine( string.Format( "{0} : rangerScanner_TransportIsDead", DateTime.Now.ToString( "o" ) ) );
             callback.DynamicInvoke();
-         
+
         }
 
         #region Image Upload related
@@ -396,8 +396,13 @@ namespace Rock.Apps.CheckScannerUtility
 
         public static double GetPercentageAmountComplete()
         {
-            var ret = Math.Round( ( double ) ( 100 * TotalAmountScanned ) / ( double ) BatchAmount ); 
-            return ( double ) Math.Round( ( double ) ( 100 * TotalAmountScanned) / ( double ) BatchAmount );
+            if ( BatchControlAmount == 0.00M )
+            {
+                return 0;
+            }
+
+            var ret = Math.Round( ( double ) ( 100 * TotalAmountScanned ) / ( double ) BatchControlAmount );
+            return ( double ) Math.Round( ( double ) ( 100 * TotalAmountScanned ) / ( double ) BatchControlAmount );
         }
 
     }

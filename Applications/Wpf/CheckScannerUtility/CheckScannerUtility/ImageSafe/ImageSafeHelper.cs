@@ -263,8 +263,6 @@ namespace ImageSafeInterop
 
             try
             {
-                string strLogTxt = "Enumerating Configured Devices...";
-
                 string strDeviceName;
                 StringBuilder str1 = new StringBuilder();
                 str1.Capacity = 256;

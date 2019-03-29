@@ -42,7 +42,7 @@ namespace Rock.Apps.CheckScannerUtility
         private List<FinancialAccount> _allAccounts;
         private RockConfig _rockConfig;
         private ObservableCollection<DisplayAccountModel> _displayAccounts = new ObservableCollection<DisplayAccountModel>();
-        private RockConfig.InterfaceType _interfaceType;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="OptionsPage"/> class.
         /// </summary>
@@ -66,9 +66,10 @@ namespace Rock.Apps.CheckScannerUtility
         /// </summary>
         private void ShowDetail()
         {
-            LoadFinancialAccounts();
             LoadDeviceDropDown();
             LoadBatchCampusDropDown();
+            LoadFinancialAccounts(cbDefaultCampus.SelectedValue as Campus);
+
             lblAlert.Visibility = Visibility.Collapsed;
             GetConfigValues();
 
@@ -77,13 +78,23 @@ namespace Rock.Apps.CheckScannerUtility
 
         }
 
-        private void LoadFinancialAccounts()
+        /// <summary>
+        /// Loads the financial accounts.
+        /// </summary>
+        /// <param name="campusId">The campus identifier.</param>
+        private void LoadFinancialAccounts( Rock.Client.Campus campus )
         {
             var client = this.RestClient;
-            _allAccounts = client.GetData<List<FinancialAccount>>( "api/FinancialAccounts" );
+            _allAccounts = client.GetData<List<FinancialAccount>>( "api/FinancialAccounts?$filter=IsActive eq true" );
+            if ( campus?.Id != null )
+            {
+                _allAccounts = _allAccounts.Where( a => !a.CampusId.HasValue || a.CampusId == campus.Id ).ToList();
+            }
+
             SetParentChildAccounts( _allAccounts );
-            icAccountsForBatches.Items.Clear();
-            icAccountsForBatches.ItemsSource = _displayAccounts;
+            tvAccountsForBatches.ItemsSource = null;
+            tvAccountsForBatches.Items.Clear();
+            tvAccountsForBatches.ItemsSource = _displayAccounts;
 
         }
 
@@ -92,6 +103,7 @@ namespace Rock.Apps.CheckScannerUtility
         public void AddParentChild( DisplayAccountModel displayAccount, int id, int? parentId )
         {
             // keep a map of each id to the node
+            System.Diagnostics.Debug.WriteLine( $"displayAccount:{displayAccount.AccountDisplayName}" );
             _map.Add( id, displayAccount );
 
             // if no parentId was given then it's a root node, so just add it
@@ -113,6 +125,8 @@ namespace Rock.Apps.CheckScannerUtility
 
         private void SetParentChildAccounts( List<FinancialAccount> accounts )
         {
+            _displayAccounts = new ObservableCollection<DisplayAccountModel>();
+            _map = new HybridDictionary();
             foreach ( var account in accounts )
             {
                 var parentDisplayAccount = new DisplayAccountModel();
@@ -424,6 +438,7 @@ namespace Rock.Apps.CheckScannerUtility
             BatchPage.UnbindAllEvents();
             BatchPage.BindDeviceToPage();
             BatchPage.ConnectToScanner();
+            BatchPage.LoadFinancialBatchesGrid();
 
             this.NavigationService.Navigate(BatchPage);
         }
@@ -431,7 +446,7 @@ namespace Rock.Apps.CheckScannerUtility
         private void AddAccountsForAmountsToSave()
         {
             List<int> selectedAccounts = new List<int>();
-            foreach ( var item in icAccountsForBatches.Items )
+            foreach ( var item in tvAccountsForBatches.Items )
             {
                 var displayAccount = item as DisplayAccountModel;
                 SetParentChildIdsToSave( displayAccount, ref selectedAccounts );
@@ -542,7 +557,7 @@ namespace Rock.Apps.CheckScannerUtility
         }
 
         private RockRestClient RestClient
-        {
+        { 
             get
             {
                 if ( _Client == null )
@@ -562,15 +577,10 @@ namespace Rock.Apps.CheckScannerUtility
             chkRequireControlItemCount.IsChecked = false;
         }
 
-        private void Page_SizeChanged( object sender, SizeChangedEventArgs e )
-        {
-
-            this.icAccountsForBatches.Height = sp_ScannerSettings.Height - 60;
-        }
-
         private void CbDefaultCampus_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             this._campusChanged = true;
+            LoadFinancialAccounts( cbDefaultCampus.SelectedValue as Rock.Client.Campus );
         }
     }
 }

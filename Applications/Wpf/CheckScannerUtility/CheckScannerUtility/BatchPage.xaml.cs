@@ -543,6 +543,11 @@ namespace Rock.Apps.CheckScannerUtility
             client.Login(config.Username, config.Password);
             List<FinancialBatch> pendingBatches = client.GetDataByEnum<List<FinancialBatch>>("api/FinancialBatches", "Status", BatchStatus.Pending);
 
+            if (config.DefaultCampusId != 0)
+            {
+                pendingBatches = pendingBatches.Where( a => !a.CampusId.HasValue || a.CampusId.Value == config.DefaultCampusId ).ToList();
+            }
+
             // Order by Batch Id starting with most recent
             grdBatches.DataContext = pendingBatches.OrderByDescending(a => a.Id);
             if (pendingBatches.Count > 0)
