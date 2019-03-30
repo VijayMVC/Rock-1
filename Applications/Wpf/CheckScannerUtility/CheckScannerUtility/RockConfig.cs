@@ -468,19 +468,17 @@ namespace Rock.Apps.CheckScannerUtility
             }
         }
 
+        /// <summary>
+        /// If CampusId Filter it set, it will limit the selectable accounts, batch list, and batch campus selection
+        /// </summary>
+        /// <value>
+        /// The campus identifier filter.
+        /// </value>
         [UserScopedSetting]
-        public int DefaultCampusId
+        public int? CampusIdFilter
         {
-            get
-            {
-                return  this["DefaultCampusId"] == null ? 0: (int) this["DefaultCampusId"] ;
-            }
-
-            set
-            {
-                this["DefaultCampusId"] = value;
-            }
-
+            get => this["CampusIdFilter"] as int?;
+            set => this["CampusIdFilter"] = value;
         }
 
         /// <summary>

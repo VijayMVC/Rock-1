@@ -101,11 +101,11 @@
                                   Content="Capture Amount on Scan"
                                   Margin="8,8,0,0"
                                   IsChecked="False" />
-                        <Label x:Name="lblDefaultBatchCampus"
-                                 Style="{StaticResource labelStyle}" Content="Default Batch Campus"/>
+                        <Label x:Name="lblCampusFilter"
+                                 Style="{StaticResource labelStyle}" Content="Campus Filter"/>
                         <ComboBox
-                            x:Name="cbDefaultCampus"
-                            SelectionChanged="CbDefaultCampus_SelectionChanged"
+                            x:Name="cbCampusFilter"
+                            SelectionChanged="CbCampusFilter_SelectionChanged"
                             Style="{StaticResource ComboBoxCustomStyle}"
                             Background="White" />
                         <Label x:Name="lblBatchOptions"

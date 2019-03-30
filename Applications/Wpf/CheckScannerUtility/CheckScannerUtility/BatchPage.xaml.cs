@@ -490,7 +490,7 @@ namespace Rock.Apps.CheckScannerUtility
         /// <summary>
         /// Loads the combo boxes.
         /// </summary>
-        public void LoadLookups(bool defaultCampusChanged = false)
+        public void LoadLookups()
         {
             RockConfig rockConfig = RockConfig.Load();
             RockRestClient client = new RockRestClient(rockConfig.RockBaseUrl);
@@ -501,23 +501,14 @@ namespace Rock.Apps.CheckScannerUtility
             cbCampus.DisplayMemberPath = "Name";
             cbCampus.Items.Clear();
             cbCampus.Items.Add(new Campus { Id = 0, Name = string.Empty });
+            if (rockConfig.CampusIdFilter.HasValue)
+            {
+                campusList = campusList.Where( a => a.Id == rockConfig.CampusIdFilter.Value ).ToList();
+            }
+
             foreach (var campus in campusList.OrderBy(a => a.Name))
             {
                 cbCampus.Items.Add(campus);
-            }
-
-            // If the user changes the Default Campus from the Options Screen
-            // Then update the Selected Campus
-            if (defaultCampusChanged && rockConfig.DefaultCampusId > 0)
-            {
-                cbCampus.SelectedValue = rockConfig.DefaultCampusId;
-                var selectedCampus = cbCampus.SelectedItem as Campus;
-
-                if (this.SelectedFinancialBatch != null)
-                {
-                    this.SelectedFinancialBatch.Campus = selectedCampus;
-                }
-
             }
 
             var currencyTypeDefinedType = client.GetDataByGuid<DefinedType>("api/DefinedTypes", Rock.Client.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE.AsGuid());
@@ -543,17 +534,22 @@ namespace Rock.Apps.CheckScannerUtility
             client.Login(config.Username, config.Password);
             List<FinancialBatch> pendingBatches = client.GetDataByEnum<List<FinancialBatch>>("api/FinancialBatches", "Status", BatchStatus.Pending);
 
-            if (config.DefaultCampusId != 0)
+            if (config.CampusIdFilter.HasValue)
             {
-                pendingBatches = pendingBatches.Where( a => !a.CampusId.HasValue || a.CampusId.Value == config.DefaultCampusId ).ToList();
+                pendingBatches = pendingBatches.Where( a => !a.CampusId.HasValue || a.CampusId.Value == config.CampusIdFilter.Value ).ToList();
+            }
+
+            foreach ( var batch in pendingBatches )
+            {
+                ControlTotalResult controlTotalAmounts = client.GetData<ControlTotalResult>( $"api/FinancialBatches/GetControlTotals/{batch.Id}" );
             }
 
             // Order by Batch Id starting with most recent
             grdBatches.DataContext = pendingBatches.OrderByDescending(a => a.Id);
             if (pendingBatches.Count > 0)
             {
-                if (SelectedFinancialBatch != null)
                 {
+                if (SelectedFinancialBatch != null)
                     // try to set the selected batch in the grid to our current batch (if it still exists in the database)
                     grdBatches.SelectedValue = pendingBatches.FirstOrDefault(a => a.Id.Equals(SelectedFinancialBatch.Id));
                     FinancialBatch selectedBatch = grdBatches.SelectedValue as FinancialBatch;
@@ -1116,7 +1112,7 @@ namespace Rock.Apps.CheckScannerUtility
         /// Updates the batch UI.
         /// </summary>
         /// <param name="selectedBatch">The selected batch.</param>
-        private void UpdateBatchUI(FinancialBatch selectedBatch)
+        public void UpdateBatchUI(FinancialBatch selectedBatch)
         {
             this.btnScan.IsEnabled = true;
             if (selectedBatch == null)
@@ -1164,14 +1160,8 @@ namespace Rock.Apps.CheckScannerUtility
             else
             {
                 // pull campus from default
-                cbCampus.SelectedValue = rockConfig.DefaultCampusId;
+                cbCampus.SelectedValue = rockConfig.CampusIdFilter;
                 var selectedCampus = cbCampus.SelectedItem as Campus;
-
-                if (this.SelectedFinancialBatch != null)
-                {
-                    this.SelectedFinancialBatch.Campus = selectedCampus;
-                }
-
             }
 
             dpBatchDate.SelectedDate = selectedBatch.BatchStartDateTime;
