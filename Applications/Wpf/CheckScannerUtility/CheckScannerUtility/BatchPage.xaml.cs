@@ -15,6 +15,7 @@
 // </copyright>
 //
 using ImageSafeInterop;
+using Rock.Apps.CheckScannerUtility.Models;
 using Rock.Client;
 using Rock.Client.Enums;
 using Rock.Net;
@@ -530,32 +531,51 @@ namespace Rock.Apps.CheckScannerUtility
             RockConfig config = RockConfig.Load();
             RockRestClient client = new RockRestClient(config.RockBaseUrl);
 
-
             client.Login(config.Username, config.Password);
             List<FinancialBatch> pendingBatches = client.GetDataByEnum<List<FinancialBatch>>("api/FinancialBatches", "Status", BatchStatus.Pending);
+            List<FinancialBatchWithControlVariance> pendingBatchesWithControlVariances = new List<FinancialBatchWithControlVariance>();
+
+            List<ControlTotalResult> controlTotalAmountsList = client.GetDataByEnum<List<ControlTotalResult>>( $"api/FinancialBatches/GetControlTotals", "Status", BatchStatus.Pending );
 
             if (config.CampusIdFilter.HasValue)
             {
                 pendingBatches = pendingBatches.Where( a => !a.CampusId.HasValue || a.CampusId.Value == config.CampusIdFilter.Value ).ToList();
             }
 
-            foreach ( var batch in pendingBatches )
+            var controlTotalsLookup = controlTotalAmountsList.ToDictionary( k => k.FinancialBatchId, v => v );
+
+            foreach ( var pendingBatch in pendingBatches )
             {
-                ControlTotalResult controlTotalAmounts = client.GetData<ControlTotalResult>( $"api/FinancialBatches/GetControlTotals/{batch.Id}" );
+                FinancialBatchWithControlVariance financialBatchWithControlVariance = new FinancialBatchWithControlVariance();
+                financialBatchWithControlVariance.CopyPropertiesFrom( pendingBatch );
+                if ( controlTotalsLookup.TryGetValue( pendingBatch.Id, out ControlTotalResult controlTotalAmounts ) )
+                {
+                    financialBatchWithControlVariance.HasVariance =
+                        ( controlTotalAmounts.ControlTotalAmount != financialBatchWithControlVariance.ControlAmount )
+                        || ( financialBatchWithControlVariance.ControlItemCount.HasValue && ( controlTotalAmounts.ControlTotalCount != financialBatchWithControlVariance.ControlItemCount ) );
+                }
+                else
+                {
+                    financialBatchWithControlVariance.HasVariance =
+                        ( financialBatchWithControlVariance.ControlAmount != 0.00M
+                        || financialBatchWithControlVariance.ControlItemCount.HasValue && ( financialBatchWithControlVariance.ControlItemCount.Value != -0 ) );
+                }
+
+                pendingBatchesWithControlVariances.Add( financialBatchWithControlVariance );
             }
 
+            grdBatches.DataContext = pendingBatchesWithControlVariances.OrderByDescending(a => a.Id);
+
             // Order by Batch Id starting with most recent
-            grdBatches.DataContext = pendingBatches.OrderByDescending(a => a.Id);
             if (pendingBatches.Count > 0)
             {
-                {
                 if (SelectedFinancialBatch != null)
+                { 
                     // try to set the selected batch in the grid to our current batch (if it still exists in the database)
                     grdBatches.SelectedValue = pendingBatches.FirstOrDefault(a => a.Id.Equals(SelectedFinancialBatch.Id));
                     FinancialBatch selectedBatch = grdBatches.SelectedValue as FinancialBatch;
 
                     ScanningPageUtility.ItemsToProcess = selectedBatch == null ? 0 : selectedBatch.ControlItemCount;
-
                 }
 
                 // if there still isn't a selected batch, set it to the first one
@@ -792,11 +812,11 @@ namespace Rock.Apps.CheckScannerUtility
         private void btnScan_Click(object sender, RoutedEventArgs e)
         {
             var rockConfig = RockConfig.Load();
-            ScanningPageUtility.CurrentFinacialTransactions = null;
+            ScanningPageUtility.CurrentFinancialTransactions = null;
             ScanningPageUtility.ItemsUploaded = 0;
             if (grdBatchItems.DataContext != null)
             {
-                ScanningPageUtility.CurrentFinacialTransactions = (grdBatchItems.DataContext as BindingList<FinancialTransaction>).ToList();
+                ScanningPageUtility.CurrentFinancialTransactions = (grdBatchItems.DataContext as BindingList<FinancialTransaction>).ToList();
             }
             // make sure we can connect (
             // NOTE: If ranger is powered down after the app starts, it might report that is is connected.  We'll catch that later when they actually start scanning
@@ -1140,17 +1160,21 @@ namespace Rock.Apps.CheckScannerUtility
                 lblBatchDateReadOnly.Content = selectedBatch.BatchStartDateTime.Value.ToString("d");
             }
 
-            var createdByPerson = client.GetData<Person>(string.Format("api/People/GetByPersonAliasId/{0}", selectedBatch.CreatedByPersonAliasId ?? 0));
-            if (createdByPerson != null)
+            lblBatchCreatedByReadOnly.Content = string.Empty;
+            Person createdByPerson = null;
+            if ( selectedBatch.CreatedByPersonAliasId.HasValue )
             {
-                lblBatchCreatedByReadOnly.Content = string.Format("{0} {1}", createdByPerson.NickName, createdByPerson.LastName);
+                 createdByPerson = client.GetData<Person>( string.Format( "api/People/GetByPersonAliasId/{0}", selectedBatch.CreatedByPersonAliasId ?? 0 ) );
+            }
+
+            if ( createdByPerson != null )
+            {
+                lblBatchCreatedByReadOnly.Content = string.Format( "{0} {1}", createdByPerson.NickName, createdByPerson.LastName );
             }
             else
             {
                 lblBatchCreatedByReadOnly.Content = string.Empty;
             }
-
-            lblBatchControlAmountReadOnly.Content = selectedBatch.ControlAmount.ToString("F");
 
             txtBatchName.Text = selectedBatch.Name;
             if (selectedBatch.CampusId.HasValue)
@@ -1214,10 +1238,38 @@ namespace Rock.Apps.CheckScannerUtility
                 bindingList.ListChanged += bindingList_ListChanged;
 
                 grdBatchItems.DataContext = bindingList;
-                ScanningPageUtility.CurrentFinacialTransactions = bindingList.ToList();
+                ScanningPageUtility.CurrentFinancialTransactions = bindingList.ToList();
                 DisplayTransactionCount(rockConfig.CaptureAmountOnScan);
 
+                lblBatchControlAmountReadOnly.Content = selectedBatch.ControlAmount.ToString( "F" );
+
+                var totalBatchAmount = bindingList.SelectMany( a => a.TransactionDetails ).Sum( a => ( decimal? ) a.Amount ) ?? 0.00M;
+                var totalBatchCount = bindingList.Count();
+                var amountVariance = totalBatchAmount - selectedBatch.ControlAmount;
+                lblBatchControlAmountVarianceReadOnly.Content = amountVariance.ToString( "F" );
+                if ( amountVariance != 0.00M )
+                {
+                    lblBatchControlAmountVarianceReadOnly.Style = this.FindResource( "labelStyleError" ) as Style;
+                }
+                else
+                {
+                    lblBatchControlAmountVarianceReadOnly.Style = this.FindResource( "labelStyleDd" ) as Style;
+                }
+
+                lblBatchControlItemCountReadOnly.Content = selectedBatch.ControlItemCount.ToString();
+                var countVariance = totalBatchCount - selectedBatch.ControlItemCount;
+                lblBatchControlItemCountVariousReadOnly.Content = countVariance.ToString();
+
+                if ( countVariance != 0 )
+                {
+                    lblBatchControlItemCountVariousReadOnly.Style = this.FindResource( "labelStyleError" ) as Style;
+                }
+                else
+                {
+                    lblBatchControlItemCountVariousReadOnly.Style = this.FindResource( "labelStyleDd" ) as Style;
+                }
             };
+
             this.Cursor = Cursors.Wait;
             bw.RunWorkerAsync();
         }
@@ -1389,11 +1441,6 @@ namespace Rock.Apps.CheckScannerUtility
 
         #endregion
 
-        private void BatchPage_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            this.grdBatchItems.Height = this.RenderSize.Height - 385;
-        }
-
         private void TextBlock_Loaded(object sender, RoutedEventArgs e)
         {
             decimal sum = 0;
@@ -1415,10 +1462,5 @@ namespace Rock.Apps.CheckScannerUtility
             textblock.Text = sum.ToString("C");
         }
 
-        public void BatchPage_Unloaded()
-        {
-
-
-        }
     }
 }
