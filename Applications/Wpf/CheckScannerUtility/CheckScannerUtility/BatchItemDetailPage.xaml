@@ -14,8 +14,8 @@
     <Grid Background="{StaticResource PageBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Name="rowTransaction" Height="Auto" />
-            <RowDefinition Name="rowTransactionDetail" Height="1*" />
-            <RowDefinition Name="rowFooter" Height=".1*" />
+            <RowDefinition Name="rowTransactionDetail" Height="*" />
+            <RowDefinition Name="rowFooter" Height="Auto" />
 
         </Grid.RowDefinitions>
         <StackPanel
@@ -141,6 +141,7 @@
                                 HorizontalAlignment="Stretch"
                                 VerticalAlignment="Stretch"
                                 BorderThickness="0"
+                                KeyboardNavigation.TabNavigation="Continue"
                                 ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <ListView.ItemTemplate>
@@ -171,8 +172,10 @@
                                                     HorizontalContentAlignment="Right"
                                                     behaviors:NumberOnlyBehaviour.AllowDecimals="True"
                                                     behaviors:NumberOnlyBehaviour.IsEnabled="True"
+                                                    Focusable="True"
                                                     KeyUp="TbAccountDetailAmount_KeyUp"
                                                     LostKeyboardFocus="TbAccountDetailAmount_LostKeyboardFocus"
+                                                    Style="{StaticResource textboxStyleCurrency}"
                                                     Text="{Binding Amount, Delay=500, Mode=TwoWay, TargetNullValue=''}" />
                                             </Grid>
                                         </Border>

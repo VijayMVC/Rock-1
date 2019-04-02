@@ -1563,9 +1563,8 @@ namespace Rock.Apps.CheckScannerUtility
             InitializeProgressBarsOfSelectedBatch(rockConfig);
             var client = new RockRestClient(rockConfig.RockBaseUrl);
             client.Login(rockConfig.Username, rockConfig.Password);
-            var allAccounts = client.GetData<List<FinancialAccount>>("api/FinancialAccounts");
+            var allAccounts = client.GetData<List<FinancialAccount>>( "api/FinancialAccounts?$filter=IsActive eq true" );
             LoadFilteredAccountsIntoListView(allAccounts, rockConfig);
-
         }
 
         /// <summary>

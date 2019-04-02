@@ -1,5 +1,4 @@
-﻿
-
+﻿using System;
 using System.ComponentModel;
 
 namespace Rock.Apps.CheckScannerUtility.Models
@@ -20,7 +19,14 @@ namespace Rock.Apps.CheckScannerUtility.Models
         public DisplayFinancialTransactionDetailModel( Rock.Client.FinancialTransactionDetail financialTransactionDetail )
         {
             _financialTransactionDetail = financialTransactionDetail;
-            _amount = financialTransactionDetail.Amount;
+            if ( financialTransactionDetail.Amount == decimal.Zero && financialTransactionDetail.Id == 0 )
+            {
+                _amount = null;
+            }
+            else
+            {
+                _amount = financialTransactionDetail.Amount;
+            }
         }
 
         /// <summary>
@@ -31,6 +37,21 @@ namespace Rock.Apps.CheckScannerUtility.Models
         /// </value>
         public int Id => _financialTransactionDetail.Id;
 
+        /// <summary>
+        /// Gets the unique identifier.
+        /// </summary>
+        /// <value>
+        /// The unique identifier.
+        /// </value>
+        public Guid Guid => _financialTransactionDetail.Guid;
+
+        /// <summary>
+        /// Gets the account identifier.
+        /// </summary>
+        /// <value>
+        /// The account identifier.
+        /// </value>
+        public int AccountId => _financialTransactionDetail.AccountId;
 
         /// <summary>
         /// Gets the display name of the account.
@@ -38,10 +59,15 @@ namespace Rock.Apps.CheckScannerUtility.Models
         /// <value>
         /// The display name of the account.
         /// </value>
-        public string AccountDisplayName
-        {
-            get => _financialTransactionDetail.Account.PublicName.IsNotNullOrWhiteSpace() == true ? _financialTransactionDetail.Account.Name : _financialTransactionDetail.Account.PublicName;
-        }
+        public string AccountDisplayName => _financialTransactionDetail.Account.PublicName.IsNotNullOrWhiteSpace() == true ? _financialTransactionDetail.Account.Name : _financialTransactionDetail.Account.PublicName;
+
+        /// <summary>
+        /// Gets the account order.
+        /// </summary>
+        /// <value>
+        /// The account order.
+        /// </value>
+        public int AccountOrder => _financialTransactionDetail.Account.Order;
 
         /// <summary>
         /// Gets or sets the amount.

@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -147,18 +148,38 @@ namespace Rock.Apps.CheckScannerUtility
         private void LoadFinancialTransactionDetails( FinancialTransaction financialTransaction )
         {
             decimal sum = 0;
-            List<DisplayFinancialTransactionDetailModel> displayFinancialTransaction = new List<DisplayFinancialTransactionDetailModel>();
+            List<DisplayFinancialTransactionDetailModel> displayFinancialTransactionList = new List<DisplayFinancialTransactionDetailModel>();
             if ( financialTransaction.TransactionDetails != null )
             {
                 foreach ( var detail in financialTransaction.TransactionDetails )
                 {
                     sum += detail.Amount;
                     detail.Account = ScanningPageUtility.Accounts.FirstOrDefault( a => a.Id == detail.AccountId );
-                    displayFinancialTransaction.Add( new DisplayFinancialTransactionDetailModel( detail ) );
+                    displayFinancialTransactionList.Add( new DisplayFinancialTransactionDetailModel( detail ) );
                 }
             }
 
-            this.lvAccountDetails.ItemsSource = displayFinancialTransaction;
+            RockConfig rockConfig = RockConfig.Load();
+
+            var filteredAccounts = ScanningPageUtility.Accounts.Where( a => rockConfig.SelectedAccountForAmountsIds.Contains( a.Id ) );
+
+            foreach ( var account in filteredAccounts )
+            {
+                // add accounts that aren't part of the Transaction in case they want to split to different accounts
+                if ( !displayFinancialTransactionList.Any( a => a.AccountId == account.Id ) )
+                {
+                    FinancialTransactionDetail financialTransactionDetail = new FinancialTransactionDetail();
+                    financialTransactionDetail.Guid = Guid.NewGuid();
+                    financialTransactionDetail.AccountId = account.Id;
+                    financialTransactionDetail.Account = account;
+                    displayFinancialTransactionList.Add( new DisplayFinancialTransactionDetailModel( financialTransactionDetail ) );
+                }
+            }
+
+
+            displayFinancialTransactionList = displayFinancialTransactionList.OrderBy( a => a.AccountOrder ).ThenBy( a => a.AccountDisplayName ).ToList();
+
+            this.lvAccountDetails.ItemsSource = displayFinancialTransactionList;
             this.txbTotals.Text = sum.ToString( "C" );
         }
 
@@ -198,9 +219,12 @@ namespace Rock.Apps.CheckScannerUtility
             DisplayFinancialTransactionDetailModel editingDisplayFinancialTransaction = tbAccountDetailAmount.DataContext as DisplayFinancialTransactionDetailModel;
 
             Debug.WriteLine( $"tbAccountDetailAmount.Text: {tbAccountDetailAmount.Text}" );
-            var displayFinancialTransactionDetail = displayFinancialTransactionDetails.FirstOrDefault( a => a.Id == editingDisplayFinancialTransaction.Id );
-            displayFinancialTransactionDetail.Amount = tbAccountDetailAmount.Text.AsDecimalOrNull();
-            txbTotals.Text = displayFinancialTransactionDetails.Sum( a => a.Amount ?? 0.00M ).ToString( "C" );
+            var displayFinancialTransactionDetail = displayFinancialTransactionDetails.FirstOrDefault( a => a.Guid == editingDisplayFinancialTransaction.Guid );
+            var otherDetailTotalAmounts = displayFinancialTransactionDetails.Where( a => a.Guid != editingDisplayFinancialTransaction.Guid && a.Amount.HasValue ).Sum( a => a.Amount.Value );
+            var editingAmount = tbAccountDetailAmount.Text.AsDecimalOrNull();
+            var totalDetailAmounts = otherDetailTotalAmounts + (editingAmount ?? 0.00M);
+
+            txbTotals.Text = totalDetailAmounts.ToString( "C" );
         }
 
         /// <summary>
@@ -220,12 +244,44 @@ namespace Rock.Apps.CheckScannerUtility
             List<DisplayFinancialTransactionDetailModel> displayFinancialTransactionDetails = lvAccountDetails.ItemsSource as List<DisplayFinancialTransactionDetailModel>;
             foreach ( var displayFinancialTransactionDetail in displayFinancialTransactionDetails )
             {
-                var databaseFinancialTransactionDetail = databaseFinancialTransactionDetails.FirstOrDefault( a => a.Id == displayFinancialTransactionDetail.Id );
+                var databaseFinancialTransactionDetail = databaseFinancialTransactionDetails.FirstOrDefault( a => a.Guid == displayFinancialTransactionDetail.Guid );
+                if ( databaseFinancialTransactionDetail == null )
+                {
+                    // transaction doesn't have a detail record for this account yet, so add it
+                    databaseFinancialTransactionDetail = new FinancialTransactionDetail()
+                    {
+                        Id = 0,
+                        TransactionId = this.FinancialTransaction.Id,
+                        AccountId = displayFinancialTransactionDetail.AccountId,
+                        Guid = displayFinancialTransactionDetail.Guid,
+                        Amount = 0.00M
+                    };
+                }
+
                 if ( databaseFinancialTransactionDetail?.Amount != displayFinancialTransactionDetail.Amount )
                 {
-                    amountsUpdated = true;
+                    
                     databaseFinancialTransactionDetail.Amount = displayFinancialTransactionDetail.Amount ?? 0.00M;
-                    client.PutData<FinancialTransactionDetail>( "api/FinancialTransactionDetails/", databaseFinancialTransactionDetail as FinancialTransactionDetail, databaseFinancialTransactionDetail.Id );
+
+                    if ( databaseFinancialTransactionDetail.Id == 0  )
+                    {
+                        if ( databaseFinancialTransactionDetail.Amount != 0.00M )
+                        {
+                            // new detail record, so add it (unless the amount is 0.00)
+                            var databaseDetailId = client.PostData<FinancialTransactionDetail>( "api/FinancialTransactionDetails/", databaseFinancialTransactionDetail as FinancialTransactionDetail ).AsIntegerOrNull();
+                            if ( databaseDetailId.HasValue )
+                            {
+                                databaseFinancialTransactionDetail.Id = databaseDetailId.Value;
+                            }
+                            amountsUpdated = true;
+                        }
+                    }
+                    else
+                    {
+                        // changed amount on an existing record, so just edit it
+                        amountsUpdated = true;
+                        client.PutData<FinancialTransactionDetail>( "api/FinancialTransactionDetails/", databaseFinancialTransactionDetail as FinancialTransactionDetail, databaseFinancialTransactionDetail.Id );
+                    }
                 }
             }
 

@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Behaviors\ControlDoubleClickBehavior.cs" />
+    <Compile Include="Behaviors\FocusExtension.cs" />
     <Compile Include="Behaviors\ShowSystemMenuBehavior.cs" />
     <Compile Include="Behaviors\SystemMenuManager.cs" />
     <Compile Include="Behaviors\WindowDragBehavior.cs" />

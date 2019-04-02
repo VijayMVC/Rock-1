@@ -222,6 +222,14 @@ namespace Rock.Apps.CheckScannerUtility
         public FinancialBatch SelectedFinancialBatch { get; set; }
 
         /// <summary>
+        /// Gets or sets the selected financial transaction.
+        /// </summary>
+        /// <value>
+        /// The selected financial transaction.
+        /// </value>
+        public FinancialTransaction SelectedFinancialTransaction { get; set; }
+
+        /// <summary>
         /// Gets or sets the logged in person id.
         /// </summary>
         /// <value>
@@ -528,6 +536,7 @@ namespace Rock.Apps.CheckScannerUtility
         /// </summary>
         public void LoadFinancialBatchesGrid()
         {
+            int? origSelectedBatchId = this.SelectedFinancialBatch?.Id;
             RockConfig config = RockConfig.Load();
             RockRestClient client = new RockRestClient(config.RockBaseUrl);
 
@@ -572,7 +581,7 @@ namespace Rock.Apps.CheckScannerUtility
                 if (SelectedFinancialBatch != null)
                 { 
                     // try to set the selected batch in the grid to our current batch (if it still exists in the database)
-                    grdBatches.SelectedValue = pendingBatches.FirstOrDefault(a => a.Id.Equals(SelectedFinancialBatch.Id));
+                    grdBatches.SelectedValue = pendingBatchesWithControlVariances.FirstOrDefault(a => a.Id.Equals(SelectedFinancialBatch.Id));
                     FinancialBatch selectedBatch = grdBatches.SelectedValue as FinancialBatch;
 
                     ScanningPageUtility.ItemsToProcess = selectedBatch == null ? 0 : selectedBatch.ControlItemCount;
@@ -1125,7 +1134,10 @@ namespace Rock.Apps.CheckScannerUtility
         private void grdBatches_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             FinancialBatch selectedBatch = grdBatches.SelectedValue as FinancialBatch;
-            UpdateBatchUI(selectedBatch);
+            if ( selectedBatch != this.SelectedFinancialBatch )
+            {
+                UpdateBatchUI( selectedBatch );
+            }
         }
 
         /// <summary>
@@ -1134,6 +1146,9 @@ namespace Rock.Apps.CheckScannerUtility
         /// <param name="selectedBatch">The selected batch.</param>
         public void UpdateBatchUI(FinancialBatch selectedBatch)
         {
+            // if a transaction was selected, keep it so that it can be reselected after reloading the list (if it exists)
+            var selectedTransactionId = this.SelectedFinancialTransaction?.Id;
+
             this.btnScan.IsEnabled = true;
             if (selectedBatch == null)
             {
@@ -1238,6 +1253,13 @@ namespace Rock.Apps.CheckScannerUtility
                 bindingList.ListChanged += bindingList_ListChanged;
 
                 grdBatchItems.DataContext = bindingList;
+
+                if (selectedTransactionId.HasValue)
+                {
+                    var selectedItem = bindingList.FirstOrDefault( a => a.Id == selectedTransactionId.Value );
+                    grdBatchItems.SelectedValue = selectedItem;
+                }
+
                 ScanningPageUtility.CurrentFinancialTransactions = bindingList.ToList();
                 DisplayTransactionCount(rockConfig.CaptureAmountOnScan);
 
@@ -1368,6 +1390,7 @@ namespace Rock.Apps.CheckScannerUtility
             try
             {
                 FinancialTransaction financialTransaction = grdBatchItems.SelectedValue as FinancialTransaction;
+                this.SelectedFinancialTransaction = financialTransaction;
 
                 if (financialTransaction != null)
                 {
