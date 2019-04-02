@@ -153,12 +153,12 @@ namespace Rock.Apps.CheckScannerUtility
                 return;
             }
             ScanningPageUtility.ItemsToProcess = ScanningPageUtility.batchPage.SelectedFinancialBatch.ControlItemCount;
-            ScanningPageUtility.KeepScanning = (ScanningPageUtility.CurrentFinacialTransactions.Count < ScanningPageUtility.ItemsToProcess);
-            if (ScanningPageUtility.CurrentFinacialTransactions.Count == 0)
+            ScanningPageUtility.KeepScanning = (ScanningPageUtility.CurrentFinancialTransactions.Count < ScanningPageUtility.ItemsToProcess);
+            if (ScanningPageUtility.CurrentFinancialTransactions.Count == 0)
             {
                 ScanningPageUtility.ItemsUploaded = 0;
             }
-            foreach (var financialTransacation in ScanningPageUtility.CurrentFinacialTransactions)
+            foreach (var financialTransacation in ScanningPageUtility.CurrentFinancialTransactions)
             {
                 var transactionDeatails = financialTransacation.TransactionDetails;
                 if (transactionDeatails != null)
@@ -1326,12 +1326,12 @@ namespace Rock.Apps.CheckScannerUtility
         }
 
         /// <summary>
-        /// Handles the KeyDown event of the TextBox control.
+        /// Handles the KeyDown event of the tbAccountAmount control.
         /// This allow for user to process enter key
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="System.Windows.Input.KeyEventArgs"/> instance containing the event data.</param>
-        private void TextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private void tbAccountAmount_KeyDown( object sender, System.Windows.Input.KeyEventArgs e)
         {
             var textbox = sender as TextBox;
             if (e.Key == Key.Return)

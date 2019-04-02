@@ -64,8 +64,6 @@ namespace Rock.Apps.CheckScannerUtility
             if ( mainWindow.Content is BatchPage )
             {
                 batchPage = mainWindow.Content as BatchPage;
-                batchPage.BatchPage_Unloaded();
-
             }
             else if ( mainWindow.Content is ScanningPage )
             {

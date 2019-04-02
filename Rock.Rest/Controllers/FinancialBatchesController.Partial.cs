@@ -14,6 +14,8 @@
 // limitations under the License.
 // </copyright>
 //
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Rock.Model;
 using Rock.Rest.Filters;
@@ -28,21 +30,31 @@ namespace Rock.Rest.Controllers
         /// <summary>
         /// Gets the control totals.
         /// </summary>
-        /// <param name="id">The identifier.</param>
+        /// <param name="queryOptions">The query options.</param>
         /// <returns></returns>
         [Authenticate, Secured]
-        [System.Web.Http.Route( "api/FinancialBatches/GetControlTotals/{id}" )]
-        public ControlTotalResult GetControlTotals( int id )
+        [System.Web.Http.Route( "api/FinancialBatches/GetControlTotals" )]
+        public IEnumerable<ControlTotalResult> GetControlTotals( System.Web.Http.OData.Query.ODataQueryOptions<FinancialBatch> queryOptions = null )
         {
-            var financialTransactionsQuery = new FinancialTransactionService( this.Service.Context as Rock.Data.RockContext ).Queryable().Where( a => a.BatchId == id );
-            var controlTotalCount = financialTransactionsQuery.Count();
-            var controlTotalAmount = financialTransactionsQuery.SelectMany( a => a.TransactionDetails ).Sum( a => ( decimal? ) a.Amount ) ?? 0.00M;
+            var financialBatchQuery = new FinancialBatchService( this.Service.Context as Rock.Data.RockContext ).Queryable();
+            financialBatchQuery = queryOptions.ApplyTo( financialBatchQuery ) as IOrderedQueryable<FinancialBatch>;
 
-            return new ControlTotalResult
+            var batchControlTotalsQuery = financialBatchQuery.SelectMany( a => a.Transactions ).Where(a => a.BatchId.HasValue).GroupBy( a => a.BatchId.Value ).Select( a => new
             {
-                ControlTotalCount = controlTotalCount,
-                ControlTotalAmount = controlTotalAmount
-            };
+                BatchId = a.Key,
+                TransactionTotalAmounts = a.Select( x => x.TransactionDetails.Sum( d => (decimal?)d.Amount ) )
+            } );
+
+            var batchControlTotalsList = batchControlTotalsQuery.ToList();
+
+            var controlTotalsList = batchControlTotalsList.Select( a => new ControlTotalResult
+            {
+                FinancialBatchId = a.BatchId,
+                ControlTotalCount = a.TransactionTotalAmounts.Count(),
+                ControlTotalAmount = a.TransactionTotalAmounts.Sum( x => (decimal?)x) ?? 0
+            } ).ToList();
+
+            return controlTotalsList;
         }
     }
 }

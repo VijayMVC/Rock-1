@@ -354,6 +354,14 @@ namespace Rock.Model
     public class ControlTotalResult
     {
         /// <summary>
+        /// Gets or sets the financial batch identifier.
+        /// </summary>
+        /// <value>
+        /// The financial batch identifier.
+        /// </value>
+        public int FinancialBatchId { get; set; }
+
+        /// <summary>
         /// Gets or sets the control total count.
         /// </summary>
         /// <value>

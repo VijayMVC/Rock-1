@@ -103,6 +103,7 @@
     <Compile Include="Controllers\CodeGenerated\AssetStorageProvidersController.cs" />
     <Compile Include="Controllers\CodeGenerated\AttendanceOccurrencesController.cs" />
     <Compile Include="Controllers\CodeGenerated\AttributeValueHistoricalsController.cs" />
+    <Compile Include="Controllers\CodeGenerated\CommunicationResponsesController.cs" />
     <Compile Include="Controllers\CodeGenerated\CommunicationTemplateAttachmentsController.cs" />
     <Compile Include="Controllers\CodeGenerated\ContentChannelItemSlugsController.cs" />
     <Compile Include="Controllers\CodeGenerated\GroupHistoricalsController.cs" />

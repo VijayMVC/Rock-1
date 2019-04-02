@@ -43,7 +43,7 @@ namespace Rock.Apps.CheckScannerUtility
 
         public static decimal TotalAmountScanned { get; set; }
         public static decimal BatchControlAmount { get; set; }
-        public static List<FinancialTransaction> CurrentFinacialTransactions { get; set; }
+        public static List<FinancialTransaction> CurrentFinancialTransactions { get; set; }
         public static List<FinancialAccount> Accounts { get; set; }
 
         public static void ResumeScanning()

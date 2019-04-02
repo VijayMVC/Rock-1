@@ -15,9 +15,11 @@
 // </copyright>
 //
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using Rock.Apps.CheckScannerUtility.Models;
 using Rock.Client;
@@ -55,15 +57,7 @@ namespace Rock.Apps.CheckScannerUtility
         /// </value>
         public BatchPage batchPage { get; set; }
 
-        /// <summary>
-        /// Handles the Click event of the btnClose control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
-        private void btnClose_Click( object sender, RoutedEventArgs e )
-        {
-            this.NavigationService.GoBack();
-        }
+
 
         /// <summary>
         /// Handles the Loaded event of the Page control.
@@ -77,14 +71,14 @@ namespace Rock.Apps.CheckScannerUtility
 
             var images = financialTransaction.Images.OrderBy( a => a.Order ).ToList();
 
-            RockConfig config = RockConfig.Load(); 
+            RockConfig config = RockConfig.Load();
             RockRestClient client = new RockRestClient( config.RockBaseUrl );
             client.Login( config.Username, config.Password );
 
-            if (config.CaptureAmountOnScan == false)
-            {
-                spFinanialTransactionSummary.Visibility = Visibility.Collapsed;
-            }
+
+            spFinancialTransactionSummary.Visibility = config.CaptureAmountOnScan == true ? Visibility.Visible : Visibility.Collapsed;
+            spActionsSaveCancel.Visibility = config.CaptureAmountOnScan == true ? Visibility.Visible : Visibility.Collapsed;
+            spActionsReadonly.Visibility = config.CaptureAmountOnScan == false ? Visibility.Visible : Visibility.Collapsed;
 
             if ( images.Count > 0 )
             {
@@ -159,25 +153,110 @@ namespace Rock.Apps.CheckScannerUtility
                 foreach ( var detail in financialTransaction.TransactionDetails )
                 {
                     sum += detail.Amount;
-                    displayFinancialTransaction.Add( new DisplayFinancialTransactionDetailModel { AccountDisplayName = GetAccountNameById( detail.AccountId ), Amount = detail.Amount } );
+                    detail.Account = ScanningPageUtility.Accounts.FirstOrDefault( a => a.Id == detail.AccountId );
+                    displayFinancialTransaction.Add( new DisplayFinancialTransactionDetailModel( detail ) );
                 }
             }
+
             this.lvAccountDetails.ItemsSource = displayFinancialTransaction;
             this.txbTotals.Text = sum.ToString( "C" );
-
-
         }
 
-        private string GetAccountNameById( int accountId )
+        /// <summary>
+        /// Handles the LostKeyboardFocus event of the TbAccountDetailAmount control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.Windows.Input.KeyboardFocusChangedEventArgs"/> instance containing the event data.</param>
+        private void TbAccountDetailAmount_LostKeyboardFocus( object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e )
         {
-            var accounts = ScanningPageUtility.Accounts;
-            if ( accounts != null )
-            {
-                return accounts.Where( acc => acc.Id == accountId ).Select( acc => acc.Name ).FirstOrDefault();
+            HandleDetailAmountChange( sender );
+        }
 
+        /// <summary>
+        /// Handles the KeyUp event of the TbAccountDetailAmount control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.Windows.Input.KeyEventArgs"/> instance containing the event data.</param>
+        private void TbAccountDetailAmount_KeyUp( object sender, System.Windows.Input.KeyEventArgs e )
+        {
+            if ( e.Key == System.Windows.Input.Key.Decimal )
+            {
+                return;
             }
 
-            return "";
+            HandleDetailAmountChange( sender );
+        }
+
+        /// <summary>
+        /// Handles the detail amount change.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        private void HandleDetailAmountChange( object sender )
+        {
+            var tbAccountDetailAmount = sender as TextBox;
+            List<DisplayFinancialTransactionDetailModel> displayFinancialTransactionDetails = lvAccountDetails.ItemsSource as List<DisplayFinancialTransactionDetailModel>;
+            DisplayFinancialTransactionDetailModel editingDisplayFinancialTransaction = tbAccountDetailAmount.DataContext as DisplayFinancialTransactionDetailModel;
+
+            Debug.WriteLine( $"tbAccountDetailAmount.Text: {tbAccountDetailAmount.Text}" );
+            var displayFinancialTransactionDetail = displayFinancialTransactionDetails.FirstOrDefault( a => a.Id == editingDisplayFinancialTransaction.Id );
+            displayFinancialTransactionDetail.Amount = tbAccountDetailAmount.Text.AsDecimalOrNull();
+            txbTotals.Text = displayFinancialTransactionDetails.Sum( a => a.Amount ?? 0.00M ).ToString( "C" );
+        }
+
+        /// <summary>
+        /// Handles the Click event of the BtnSave control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void BtnSave_Click( object sender, RoutedEventArgs e )
+        {
+            RockConfig config = RockConfig.Load();
+            RockRestClient client = new RockRestClient( config.RockBaseUrl );
+            client.Login( config.Username, config.Password );
+            List<FinancialTransactionDetail> databaseFinancialTransactionDetails = client.GetData<List<FinancialTransactionDetail>>( "api/FinancialTransactionDetails", string.Format( "TransactionId eq {0}", this.FinancialTransaction.Id ) );
+
+            bool amountsUpdated = false;
+
+            List<DisplayFinancialTransactionDetailModel> displayFinancialTransactionDetails = lvAccountDetails.ItemsSource as List<DisplayFinancialTransactionDetailModel>;
+            foreach ( var displayFinancialTransactionDetail in displayFinancialTransactionDetails )
+            {
+                var databaseFinancialTransactionDetail = databaseFinancialTransactionDetails.FirstOrDefault( a => a.Id == displayFinancialTransactionDetail.Id );
+                if ( databaseFinancialTransactionDetail?.Amount != displayFinancialTransactionDetail.Amount )
+                {
+                    amountsUpdated = true;
+                    databaseFinancialTransactionDetail.Amount = displayFinancialTransactionDetail.Amount ?? 0.00M;
+                    client.PutData<FinancialTransactionDetail>( "api/FinancialTransactionDetails/", databaseFinancialTransactionDetail as FinancialTransactionDetail, databaseFinancialTransactionDetail.Id );
+                }
+            }
+
+            if ( amountsUpdated )
+            {
+                // reload the batches since some amounts where changed
+                batchPage.LoadFinancialBatchesGrid();
+                batchPage.UpdateBatchUI( batchPage.SelectedFinancialBatch );
+            }
+
+            this.NavigationService.GoBack();
+        }
+
+        /// <summary>
+        /// Handles the Click event of the BtnCancel control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void BtnCancel_Click( object sender, RoutedEventArgs e )
+        {
+            this.NavigationService.GoBack();
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnClose control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void btnClose_Click( object sender, RoutedEventArgs e )
+        {
+            this.NavigationService.GoBack();
         }
     }
 }

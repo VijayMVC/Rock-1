@@ -503,6 +503,7 @@
         <Setter Property="FontSize"
                 Value="14"></Setter>
     </Style>
+
     <Style x:Key="textBlockStyleGridData"
            TargetType="{x:Type TextBlock}">
         <Setter Property="TextAlignment" Value="Left" />
@@ -514,7 +515,7 @@
         <Setter Property="FontWeight"
                 Value="Normal"></Setter>
         <Setter Property="FontSize"
-                Value="1"></Setter>
+                Value="14"></Setter>
     </Style>
 
     <!--
@@ -633,6 +634,21 @@
             </Setter.Value>
         </Setter>
 
+    </Style>
+
+
+    <Style x:Key="gridCellStyleIfVariance"
+           TargetType="{x:Type DataGridCell}"
+           BasedOn="{StaticResource gridCellStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsSelected"
+                     Value="True">
+                <Setter Property="Background"
+                        Value="#d4d4d4" />
+                <Setter Property="Foreground"
+                        Value="#2b2b2b" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="gridCellStyleNumberAlignRight"

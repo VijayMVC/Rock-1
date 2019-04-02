@@ -119,6 +119,9 @@
     <Compile Include="..\..\..\..\Rock\Utility\ExtensionMethods\EnumExtensions.cs">
       <Link>RockExtensions\EnumExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\..\..\..\Rock\Utility\ExtensionMethods\StringExtensions.cs">
+      <Link>RockExtensions\StringExtensions.cs</Link>
+    </Compile>
     <Compile Include="BatchItemDetailPage.xaml.cs">
       <DependentUpon>BatchItemDetailPage.xaml</DependentUpon>
     </Compile>
@@ -135,6 +138,7 @@
     <Compile Include="Models\DisplayAccountValueModel.cs" />
     <Compile Include="Models\DisplayAccountModel.cs" />
     <Compile Include="Models\DisplayFinancialTransactionDetailModel.cs" />
+    <Compile Include="Models\FinancialBatchWithControlVariance.cs" />
     <Compile Include="OptionsPage.xaml.cs">
       <DependentUpon>OptionsPage.xaml</DependentUpon>
     </Compile>
@@ -146,7 +150,6 @@
       <ExcludeFromStyleCop>True</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="RockConfig.cs" />
-    <Compile Include="RockExtensions\StringExtensions.cs" />
     <Compile Include="ScannedDocInfo.cs" />
     <Compile Include="ScanningPage.xaml.cs">
       <DependentUpon>ScanningPage.xaml</DependentUpon>
@@ -155,7 +158,6 @@
     <Compile Include="ScanningPromptPage.xaml.cs">
       <DependentUpon>ScanningPromptPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ZeroCurrencyConverter.cs" />
     <Page Include="BatchItemDetailPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

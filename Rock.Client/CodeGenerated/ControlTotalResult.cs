@@ -37,6 +37,9 @@ namespace Rock.Client
         /// <summary />
         public int ControlTotalCount { get; set; }
 
+        /// <summary />
+        public int FinancialBatchId { get; set; }
+
         /// <summary>
         /// Copies the base properties from a source ControlTotalResult object
         /// </summary>
@@ -45,6 +48,7 @@ namespace Rock.Client
         {
             this.ControlTotalAmount = source.ControlTotalAmount;
             this.ControlTotalCount = source.ControlTotalCount;
+            this.FinancialBatchId = source.FinancialBatchId;
 
         }
     }

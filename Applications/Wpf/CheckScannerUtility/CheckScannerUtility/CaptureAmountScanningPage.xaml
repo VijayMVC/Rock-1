@@ -230,18 +230,18 @@
                     <StackPanel Grid.Row="1"  Grid.Column="1" Grid.RowSpan="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"  Background="#f3f3f3">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <ListView Margin="0,0,0,0"
-                        IsTabStop="False" 
-                        BorderThickness="0"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Stretch"
-                        Name="lvAccounts"
-                        Visibility="Visible"
-                        KeyboardNavigation.TabNavigation="Continue">
+                                IsTabStop="False" 
+                                BorderThickness="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Name="lvAccounts"
+                                Visibility="Visible"
+                                KeyboardNavigation.TabNavigation="Continue">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel>
                                             <Label Name="lblAccount" Style="{StaticResource labelStyle}"  Content="{Binding AccountDisplayName}"  />
-                                            <TextBox behaviors:NumberOnlyBehaviour.IsEnabled="True" behaviors:NumberOnlyBehaviour.AllowDecimals="True" KeyDown="TextBox_KeyDown" TextChanged="TextBox_TextChanged"  HorizontalAlignment="Stretch" Margin="5" Focusable="True" Text="{Binding Amount,Mode=TwoWay}">
+                                            <TextBox Name="tbAccountAmount" behaviors:NumberOnlyBehaviour.IsEnabled="True" behaviors:NumberOnlyBehaviour.AllowDecimals="True" KeyDown="tbAccountAmount_KeyDown" TextChanged="TextBox_TextChanged"  HorizontalAlignment="Stretch" Margin="5" Focusable="True" Text="{Binding Amount,Mode=TwoWay}">
                                                 <TextBox.Style>
                                                     <Style TargetType="TextBox">
                                                         <Setter Property="HorizontalAlignment" Value="Left"/>
