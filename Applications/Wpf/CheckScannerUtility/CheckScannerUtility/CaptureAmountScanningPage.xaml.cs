@@ -98,7 +98,7 @@ namespace Rock.Apps.CheckScannerUtility
             btnNext.IsEnabled = false;
             ShowUploadStats();
             // set the uploadScannedItemClient to null and reconnect to ensure we have a fresh connection (just in case they changed the url, or if the connection died for some other reason)
-            ScanningPageUtility.Initalize();
+            ScanningPageUtility.Initialize();
             InitalizeControls();
             ScanningPageUtility.UploadScannedItemClient = null;
             ScanningPageUtility.EnsureUploadScanRestClient();

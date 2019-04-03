@@ -20,7 +20,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto"
                       Margin="5">
             <Label Name="lblErrorMessage"
-                   Style="{StaticResource labelStyleAlertError}"
+                   Style="{StaticResource labelStyleAlertDanger}"
                    Content="An error has occurred while processing your request"
                    VerticalAlignment="Stretch" />
         </ScrollViewer>

@@ -17,7 +17,7 @@ namespace Rock.Apps.CheckScannerUtility
 {
     public static class ScanningPageUtility
     {
-        public static void Initalize()
+        public static void Initialize()
         {
             ItemsUploaded = 0;
             KeepScanning = true;

@@ -109,6 +109,14 @@
                 </Border>
             </StackPanel>
             <!--  Check Display Section  -->
+            <Label
+                Name="lblStartInfo"
+                Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Content="Ready to scan next check"
+                Style="{StaticResource labelStyleBannerTitle}"
+                Visibility="Collapsed" />
             <StackPanel
                 Name="spCheckView"
                 Grid.Row="1"
@@ -128,46 +136,57 @@
                     Name="spAlertMessage"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Top"
-                    Visibility="Collapsed">
+                    Visibility="Visible">
                     <Label Name="lblAlertCaptionMessage" />
-                    <Border
-                        Name="borderAlertBorder"
-                        Margin="10,0,0,10"
-                        Visibility="Collapsed">
-                        <StackPanel>
-                            <StackPanel Name="spAlert">
-                                <Label
-                                    Name="lblAlertSubMessage"
-                                    MinHeight="30"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    Visibility="Visible" />
-                            </StackPanel>
-                            <StackPanel
-                                Name="pnlPromptForUpload"
-                                Margin="5"
-                                Visibility="Collapsed">
-                                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                    <Button
-                                        x:Name="btnSkipAndContinue"
-                                        Margin="8"
-                                        HorizontalAlignment="Left"
-                                        Click="btnSkipAndContinue_Click"
-                                        Content="Skip"
-                                        Style="{StaticResource buttonStylePrimary}" />
-                                    <Button
-                                        x:Name="btnIgnoreAndUpload"
-                                        Margin="8"
-                                        HorizontalAlignment="Left"
-                                        Click="btnIgnoreAndUpload_Click"
-                                        Content="Upload"
-                                        Style="{StaticResource buttonStyle}"
-                                        ToolTip="Upload and continue scanning" />
-                                </StackPanel>
-                            </StackPanel>
 
+                    <StackPanel>
+                        <StackPanel Name="spAlert">
+                            <Label
+                                Name="lblAlertMessageWarning"
+                                Content="Test Warning"
+                                Style="{StaticResource labelStyleAlertWarning}"
+                                Visibility="Visible" />
+                            <Label
+                                Name="lblAlertMessageInfo"
+                                Content="Test Info"
+                                Style="{StaticResource labelStyleAlertInfo}"
+                                Visibility="Visible" />
+                            <Label
+                                Name="lblAlertMessageDanger"
+                                Content="Test Danger"
+                                Style="{StaticResource labelStyleAlertDanger}"
+                                Visibility="Visible" />
+                            <Label
+                                Name="lblAlertMessageSuccess"
+                                Content="Test Success"
+                                Style="{StaticResource labelStyleAlertSuccess}"
+                                Visibility="Visible" />
                         </StackPanel>
-                    </Border>
+                        <StackPanel
+                            Name="pnlPromptForUpload"
+                            Margin="5"
+                            Visibility="Collapsed">
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <Button
+                                    x:Name="btnSkipAndContinue"
+                                    Margin="8"
+                                    HorizontalAlignment="Left"
+                                    Click="btnSkipAndContinue_Click"
+                                    Content="Skip"
+                                    Style="{StaticResource buttonStylePrimary}" />
+                                <Button
+                                    x:Name="btnIgnoreAndUpload"
+                                    Margin="8"
+                                    HorizontalAlignment="Left"
+                                    Click="btnIgnoreAndUpload_Click"
+                                    Content="Upload"
+                                    Style="{StaticResource buttonStyle}"
+                                    ToolTip="Upload and continue scanning" />
+                            </StackPanel>
+                        </StackPanel>
+
+                    </StackPanel>
+
                 </StackPanel>
 
                 <StackPanel>
@@ -183,7 +202,7 @@
                         Grid.Column="0"
                         Panel.ZIndex="1"
                         Content="ERROR: --"
-                        Style="{StaticResource labelStyleAlertError}"
+                        Style="{StaticResource labelStyleAlertDanger}"
                         Visibility="Visible" />
                 </StackPanel>
                 <Grid>
@@ -207,16 +226,18 @@
                                     <RowDefinition />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="4*" />
+                                    <ColumnDefinition Width="13*" />
                                     <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="17*" />
                                 </Grid.ColumnDefinitions>
                                 <Image
                                     Name="imgCheckFront"
                                     Grid.Row="0"
-                                    Grid.Column="1"
+                                    Grid.RowSpan="3"
+                                    Grid.Column="2"
                                     MaxWidth="700"
-                                    Margin="8,0"
+                                    Margin="8,0,8,-36"
                                     HorizontalAlignment="Center"
                                     Source="images/check-image.png"
                                     Stretch="Uniform"
@@ -224,14 +245,18 @@
                                 <Image
                                     Name="imgCheckBack"
                                     Grid.Row="0"
-                                    Grid.Column="1"
+                                    Grid.RowSpan="3"
+                                    Grid.Column="2"
                                     MaxWidth="700"
-                                    Margin="8,0"
+                                    Margin="358,0,358,-36"
                                     HorizontalAlignment="Center"
                                     Source="images/check-image.png"
                                     Stretch="Uniform"
                                     Visibility="Collapsed" />
-                                <Grid Grid.Row="1" Grid.Column="1">
+                                <Grid
+                                    Grid.Row="2"
+                                    Grid.Column="2"
+                                    Margin="0,156,0,-62">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition />
                                         <ColumnDefinition />
@@ -282,8 +307,8 @@
                                 <Grid
                                     Name="grdImageThumbnailsButtons"
                                     Grid.Row="2"
-                                    Grid.Column="1"
-                                    Margin="0,20,0,0"
+                                    Grid.Column="2"
+                                    Margin="0,202,0,-182"
                                     HorizontalAlignment="Stretch"
                                     VerticalAlignment="Stretch">
                                     <Grid.ColumnDefinitions>

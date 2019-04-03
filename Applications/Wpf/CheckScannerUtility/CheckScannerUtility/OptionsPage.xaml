@@ -74,7 +74,7 @@
                     <TextBox x:Name="txtRockUrl"
                          Style="{StaticResource textboxStyleUrl}" />
                     <Label x:Name="lblScannerError"
-                       Style="{StaticResource labelStyleAlertError}"
+                       Style="{StaticResource labelStyleAlertDanger}"
                        Content="ERROR: No scanner drivers. Make sure that either a Ranger or MagTek driver is installed."
                        Visibility="Collapsed"/>
                     <Label x:Name="lblScannerInterfaceType"
@@ -191,7 +191,7 @@
                         </StackPanel>
                     </Grid>
                     <Label x:Name="lblAlert"
-                       Style="{StaticResource labelStyleAlert}"
+                       Style="{StaticResource labelStyleAlertDanger}"
                        Content="ERROR: Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something Something "/>
                     <StackPanel Orientation="Horizontal"
                             Margin="0, 8">

@@ -121,7 +121,7 @@
                         <RowDefinition />
                     </Grid.RowDefinitions>
                     <Label Name="lblScannerDriverError"
-                   Style="{StaticResource labelStyleAlertError}"
+                   Style="{StaticResource labelStyleAlertDanger}"
                    Content="ERROR: Scanner Driver not available"
                    Grid.Row="0"
                    Grid.Column="0"

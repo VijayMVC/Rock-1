@@ -160,7 +160,7 @@
                                     Grid.Column="0"
                                     Panel.ZIndex="1"
                                     Content="ERROR: --"
-                                    Style="{StaticResource labelStyleAlertError}"
+                                    Style="{StaticResource labelStyleAlertDanger}"
                                     Visibility="Visible" />
                             </StackPanel>
                             <Grid Visibility="Visible">
