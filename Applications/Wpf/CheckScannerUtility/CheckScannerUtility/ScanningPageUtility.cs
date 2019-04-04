@@ -274,8 +274,9 @@ namespace Rock.Apps.CheckScannerUtility
 
                 return true;
             }
-            catch ( Exception e )
+            catch ( Exception ex )
             {
+                System.Diagnostics.Debug.WriteLine( $"UploadScannedItem {ex}" );
                 return false;
             }
 

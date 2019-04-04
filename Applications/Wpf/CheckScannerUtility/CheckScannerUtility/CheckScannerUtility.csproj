@@ -125,7 +125,6 @@
     <Compile Include="BatchItemDetailPage.xaml.cs">
       <DependentUpon>BatchItemDetailPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Behaviors\NumberOnlyBehaviour.cs" />
     <Compile Include="CaptureAmountScanningPage.xaml.cs">
       <DependentUpon>CaptureAmountScanningPage.xaml</DependentUpon>
     </Compile>
@@ -308,6 +307,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="images\check-image-back.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Behaviors\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

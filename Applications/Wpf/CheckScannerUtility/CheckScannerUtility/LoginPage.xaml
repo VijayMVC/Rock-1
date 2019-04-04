@@ -96,7 +96,7 @@
                 Width="Auto"
                 HorizontalAlignment="Stretch"
                 KeyDown="HideLoginWarning"
-                Style="{StaticResource textboxStyle}" />
+                Style="{StaticResource inputStyleBase}" />
         </StackPanel>
 
         <StackPanel

@@ -104,7 +104,7 @@
                         <Label x:Name="lblCampusFilter"
                                  Style="{StaticResource labelStyle}" Content="Campus Filter"/>
                         <ComboBox
-                            x:Name="cbCampusFilter"
+                            x:Name="cboCampusFilter"
                             SelectionChanged="CbCampusFilter_SelectionChanged"
                             Style="{StaticResource ComboBoxCustomStyle}"
                             Background="White" />

@@ -12,6 +12,6 @@ namespace Rock.Apps.CheckScannerUtility.Models
     /// <seealso cref="Rock.Client.FinancialBatch" />
     public class FinancialBatchWithControlVariance : Rock.Client.FinancialBatch
     {
-        public bool HasVariance { get; set; }
+        public bool? HasVariance { get; set; }
     }
 }

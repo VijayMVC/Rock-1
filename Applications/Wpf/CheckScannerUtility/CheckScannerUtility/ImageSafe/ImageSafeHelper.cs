@@ -283,9 +283,9 @@ namespace ImageSafeInterop
                         nRetCode = MTMICRGetDevice(nTotalDev++, str1);
                     }
             }
-            catch (NullReferenceException e)
+            catch (NullReferenceException ex)
             {
-
+                Debug.WriteLine( $"GetDeviceList {ex}" );
             }
         }
         public static void ProcessDocument(Action<CheckData> callback)

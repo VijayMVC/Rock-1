@@ -21,16 +21,6 @@
 
     <!--  Label style  -->
 
-    <Style x:Key="lblWarningCaptionStyle" TargetType="Label">
-        <Setter Property="Foreground" Value="#8a6d3b" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style x:Key="lblAlertCaptionStyle" TargetType="Label">
-        <Setter Property="Foreground" Value="#e55235" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
     <Style x:Key="labelStyle" TargetType="{x:Type Label}">
         <Setter Property="Padding" Value="4,4,0,0" />
         <Setter Property="Label.HorizontalAlignment" Value="Left" />
@@ -54,7 +44,7 @@
         x:Key="labelStyleError"
         BasedOn="{StaticResource labelStyle}"
         TargetType="{x:Type Label}">
-        <Setter Property="Label.Foreground" Value="Red" />
+        <Setter Property="Label.Foreground" Value="#d4442e" />
     </Style>
 
     <!--  Label style: Bold  -->
@@ -680,6 +670,9 @@
         <Setter Property="Height" Value="30" />
         <Setter Property="Padding" Value="4" />
         <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+
     </Style>
 
     <!--  Checkbox Style  -->
@@ -702,19 +695,7 @@
     <Style
         x:Key="textboxStyle"
         BasedOn="{StaticResource ResourceKey=inputStyleBase}"
-        TargetType="{x:Type Control}" />
-
-    <Style
-        x:Key="textboxStyleCurrency"
-        BasedOn="{StaticResource ResourceKey=textboxStyle}"
         TargetType="{x:Type TextBox}">
-        <Setter Property="Margin" Value="0" />
-        <Setter Property="Width" Value="auto" />
-        <Setter Property="Height" Value="auto" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Height" Value="30" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TextBox}">
@@ -746,12 +727,29 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <Style
+        x:Key="textboxStyleCurrency"
+        BasedOn="{StaticResource ResourceKey=textboxStyle}"
+        TargetType="{x:Type TextBox}">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Height" Value="30" />
+
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}}" Value="True">
                 <Setter Property="rockWpf:FocusExtension.IsFocused" Value="True" />
                 <Setter Property="Text" Value="{x:Null}" />
             </DataTrigger>
         </Style.Triggers>
+    </Style>
+
+    <Style
+        x:Key="textboxStyleCurrencyError"
+        BasedOn="{StaticResource ResourceKey=textboxStyle}"
+        TargetType="{x:Type TextBox}">
+        <Setter Property="BorderBrush" Value="#d4442e" />
     </Style>
 
     <Style
@@ -766,15 +764,15 @@
     <Style
         x:Key="textboxStyleError"
         BasedOn="{StaticResource ResourceKey=textboxStyle}"
-        TargetType="{x:Type Control}">
-        <Setter Property="BorderBrush" Value="Red" />
+        TargetType="{x:Type TextBox}">
+        <Setter Property="BorderBrush" Value="#d4442e" />
     </Style>
 
     <!--  Textbox Style: url  -->
     <Style
         x:Key="textboxStyleUrl"
         BasedOn="{StaticResource ResourceKey=textboxStyle}"
-        TargetType="{x:Type Control}">
+        TargetType="{x:Type TextBox}">
         <Setter Property="Width" Value="420" />
     </Style>
 
@@ -787,7 +785,7 @@
         x:Key="datePickerErrorStyle"
         BasedOn="{StaticResource ResourceKey=inputStyleBase}"
         TargetType="{x:Type DatePicker}">
-        <Setter Property="BorderBrush" Value="Red" />
+        <Setter Property="BorderBrush" Value="#d4442e" />
     </Style>
 
     <!--  ComboBox Style  -->

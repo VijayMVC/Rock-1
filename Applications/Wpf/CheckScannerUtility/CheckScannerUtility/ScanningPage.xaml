@@ -5,6 +5,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:fa="http://schemas.fontawesome.io/icons/"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:rockWpf="clr-namespace:Rock.Wpf;assembly=Rock.Wpf"
+    xmlns:rockWpfControls="clr-namespace:Rock.Wpf.Controls;assembly=Rock.Wpf"
     Title="ScanningPage"
     d:DesignHeight="900"
     d:DesignWidth="960"
@@ -140,28 +142,11 @@
                     <Label Name="lblAlertCaptionMessage" />
 
                     <StackPanel>
-                        <StackPanel Name="spAlert">
-                            <Label
-                                Name="lblAlertMessageWarning"
-                                Content="Test Warning"
-                                Style="{StaticResource labelStyleAlertWarning}"
-                                Visibility="Visible" />
-                            <Label
-                                Name="lblAlertMessageInfo"
-                                Content="Test Info"
-                                Style="{StaticResource labelStyleAlertInfo}"
-                                Visibility="Visible" />
-                            <Label
-                                Name="lblAlertMessageDanger"
-                                Content="Test Danger"
-                                Style="{StaticResource labelStyleAlertDanger}"
-                                Visibility="Visible" />
-                            <Label
-                                Name="lblAlertMessageSuccess"
-                                Content="Test Success"
-                                Style="{StaticResource labelStyleAlertSuccess}"
-                                Visibility="Visible" />
-                        </StackPanel>
+                        <rockWpfControls:AlertLabel
+                            Name="lblAlert"
+                            AlertType="Danger"
+                            Content=""
+                            Visibility="Collapsed" />
                         <StackPanel
                             Name="pnlPromptForUpload"
                             Margin="5"
@@ -221,9 +206,11 @@
                             VerticalAlignment="Stretch">
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition />
-                                    <RowDefinition />
-                                    <RowDefinition />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="4*" />
@@ -231,60 +218,57 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="17*" />
                                 </Grid.ColumnDefinitions>
-                                <Image
-                                    Name="imgCheckFront"
-                                    Grid.Row="0"
-                                    Grid.RowSpan="3"
-                                    Grid.Column="2"
-                                    MaxWidth="700"
-                                    Margin="8,0,8,-36"
-                                    HorizontalAlignment="Center"
-                                    Source="images/check-image.png"
-                                    Stretch="Uniform"
-                                    Visibility="Visible" />
-                                <Image
-                                    Name="imgCheckBack"
-                                    Grid.Row="0"
-                                    Grid.RowSpan="3"
-                                    Grid.Column="2"
-                                    MaxWidth="700"
-                                    Margin="358,0,358,-36"
-                                    HorizontalAlignment="Center"
-                                    Source="images/check-image.png"
-                                    Stretch="Uniform"
-                                    Visibility="Collapsed" />
                                 <Grid
-                                    Grid.Row="2"
-                                    Grid.Column="2"
-                                    Margin="0,156,0,-62">
+                                    Grid.Row="0"
+                                    Grid.RowSpan="3"
+                                    Grid.Column="2">
+                                    <Image
+                                        Name="imgCheckFront"
+                                        MaxWidth="700"
+                                        HorizontalAlignment="Center"
+                                        Source="images/check-image.png"
+                                        Stretch="Uniform"
+                                        Visibility="Visible" />
+                                    <Image
+                                        Name="imgCheckBack"
+                                        MaxWidth="700"
+                                        HorizontalAlignment="Center"
+                                        Source="images/check-image-back.png"
+                                        Stretch="Uniform"
+                                        Visibility="Collapsed" />
+                                </Grid>
+                                <Grid
+                                    Name="gCheckMICRInfo"
+                                    Grid.Row="3"
+                                    Grid.Column="2">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition />
                                         <ColumnDefinition />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel
-                                        Name="spRoutingInfo"
+                                        Name="spMicrRoutingAccountInfo"
                                         HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Stretch"
+                                        VerticalAlignment="Top"
                                         Orientation="Horizontal">
                                         <Label
-                                            x:Name="lblRoutingAccountCaption"
+                                            x:Name="lblMicrRoutingAccountCaption"
                                             Content="Routing / Account #"
                                             Style="{StaticResource labelStyleCaption}" />
-                                        <Label x:Name="lblRoutingAccountValue" Content="063453535 / 46565656565" />
+                                        <Label x:Name="lblMicrRoutingAccountValue" Content="063453535 / 46565656565" />
                                     </StackPanel>
                                     <StackPanel
-                                        Name="spOtherData"
+                                        Name="spMicrOtherData"
                                         Grid.Column="0"
                                         Margin="0,15,0,0"
                                         HorizontalAlignment="Stretch"
                                         Orientation="Horizontal"
                                         Visibility="Collapsed">
                                         <Label
-                                            x:Name="lblOtherDataCaption"
+                                            x:Name="lblMicrOtherDataCaption"
                                             VerticalAlignment="Center"
                                             Content="OtherData"
                                             Style="{StaticResource labelStyleCaption}" />
-                                        <Label x:Name="lblOtherData" VerticalAlignment="Center" />
+                                        <Label x:Name="lblMicrOtherData" VerticalAlignment="Center" />
                                     </StackPanel>
                                     <StackPanel
                                         Grid.Column="1"
@@ -293,22 +277,22 @@
                                         VerticalAlignment="Center"
                                         Orientation="Horizontal">
                                         <Label
-                                            x:Name="lblCheckNumberCaption"
+                                            x:Name="lblMicrCheckNumberCaption"
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Center"
                                             Content="Check #"
                                             Style="{StaticResource labelStyleCaption}" />
                                         <Label
-                                            Name="lblCheckNumber"
+                                            Name="lblMicrCheckNumber"
                                             VerticalAlignment="Center"
                                             Content="1234" />
                                     </StackPanel>
                                 </Grid>
                                 <Grid
                                     Name="grdImageThumbnailsButtons"
-                                    Grid.Row="2"
+                                    Grid.Row="4"
                                     Grid.Column="2"
-                                    Margin="0,202,0,-182"
+                                    Margin="0,5,0,0"
                                     HorizontalAlignment="Stretch"
                                     VerticalAlignment="Stretch">
                                     <Grid.ColumnDefinitions>
@@ -450,7 +434,7 @@
                         Margin="10"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Top"
-                        Fill="Red" />
+                        Fill="#d4442e" />
                 </Border>
             </Grid>
         </StackPanel>

@@ -152,17 +152,17 @@ namespace Rock.Apps.CheckScannerUtility
         {
             var client = RestClient;
             var campusList = client.GetData<List<Campus>>( "api/Campuses" );
-            cbCampusFilter.SelectedValuePath = "Id";
-            cbCampusFilter.DisplayMemberPath = "Name";
-            cbCampusFilter.Items.Clear();
+            cboCampusFilter.SelectedValuePath = "Id";
+            cboCampusFilter.DisplayMemberPath = "Name";
+            cboCampusFilter.Items.Clear();
             var nullOption = new object();
-            cbCampusFilter.Items.Add( nullOption );
+            cboCampusFilter.Items.Add( nullOption );
             foreach ( var campus in campusList.OrderBy( a => a.Name ) )
             {
-                cbCampusFilter.Items.Add( campus );
+                cboCampusFilter.Items.Add( campus );
             }
 
-            cbCampusFilter.SelectedItem = campusList.FirstOrDefault( a => a.Id == _rockConfig.CampusIdFilter ) ?? nullOption;
+            cboCampusFilter.SelectedItem = campusList.FirstOrDefault( a => a.Id == _rockConfig.CampusIdFilter ) ?? nullOption;
         }
 
         /// <summary>
@@ -427,7 +427,7 @@ namespace Rock.Apps.CheckScannerUtility
                 _rockConfig.MICRImageComPort = short.Parse( comPortName.Replace( "COM", string.Empty ) );
             }
 
-            var campusFilter = cbCampusFilter.SelectedItem as Campus;
+            var campusFilter = cboCampusFilter.SelectedItem as Campus;
             _rockConfig.CampusIdFilter = campusFilter?.Id;
 
             _rockConfig.Save();
@@ -584,7 +584,7 @@ namespace Rock.Apps.CheckScannerUtility
 
         private void CbCampusFilter_SelectionChanged( object sender, SelectionChangedEventArgs e)
         {
-            int? campusId = cbCampusFilter.SelectedValue as int?;
+            int? campusId = cboCampusFilter.SelectedValue as int?;
             LoadFinancialAccounts( campusId );
         }
     }
