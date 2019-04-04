@@ -175,19 +175,25 @@
                 </StackPanel>
 
                 <StackPanel>
-                    <Label
+                    <rockWpfControls:AlertLabel
                         Name="lblScanItemUploadSuccess"
-                        Content="Uploaded Successfully"
-                        Style="{StaticResource labelStyleAlertSuccess}" />
+                        AlertType="Success"
+                        Content="Uploaded Successfully" />
+                </StackPanel>
+                <StackPanel>
+                    <rockWpfControls:AlertLabel
+                        Name="lblScanItemUploadSkipped"
+                        AlertType="Info"
+                        Content="Upload Skipped" />
                 </StackPanel>
                 <StackPanel Name="spException" Visibility="Collapsed">
-                    <Label
+                    <rockWpfControls:AlertLabel
                         Name="lblExceptions"
                         Grid.Row="0"
                         Grid.Column="0"
                         Panel.ZIndex="1"
+                        AlertType="Danger"
                         Content="ERROR: --"
-                        Style="{StaticResource labelStyleAlertDanger}"
                         Visibility="Visible" />
                 </StackPanel>
                 <Grid>
@@ -219,6 +225,7 @@
                                     <ColumnDefinition Width="17*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid
+                                    Name="CheckScanImages"
                                     Grid.Row="0"
                                     Grid.RowSpan="3"
                                     Grid.Column="2">

@@ -111,15 +111,13 @@
                                 AlertType="Danger"
                                 Content="lblAlert"
                                 Visibility="Visible" />
-                            
-                            <StackPanel
-                                Name="pnlPromptForUpload"
-                                Visibility="Visible">
+
+                            <StackPanel Name="pnlPromptForUpload" Visibility="Visible">
                                 <rockWpfControls:AlertLabel
-                                Name="lblPromptForUpload"
-                                AlertType="Warning"
-                                Content="lblPromptForUpload"
-                                Visibility="Visible" />
+                                    Name="lblPromptForUpload"
+                                    AlertType="Warning"
+                                    Content="lblPromptForUpload"
+                                    Visibility="Visible" />
                                 <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
                                     <Button
                                         x:Name="btnSkipAndContinue"
