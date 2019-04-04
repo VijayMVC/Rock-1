@@ -34,7 +34,22 @@ namespace RockWeb.Blocks.Cms
     [Description( "Manage files stored on a remote server or 3rd party cloud storage" )]
     public partial class AssetManager : RockBlock, IPickerBlock
     {
+        private const string NullSelectedId = "-1";
+
         #region IPicker Implementation
+
+        private string _selectedValue
+        {
+            get
+            {
+              return ViewState["_selectedValue"] as string;
+            }
+
+            set
+            {
+                ViewState["_selectedValue"] = value;
+            }
+        }
         /// <summary>
         /// The selected value will be returned as a URL. For 3rd party cloud services a presigned URL must be created
         /// for the file to be publicly available.
@@ -46,9 +61,9 @@ namespace RockWeb.Blocks.Cms
         {
             get
             {
-                if ( lbAssetStorageId.Text.IsNullOrWhiteSpace() )
+                if ( lbAssetStorageId.Text.IsNullOrWhiteSpace() || lbAssetStorageId.Text.Equals(NullSelectedId ))
                 {
-                    return string.Empty;
+                    return _selectedValue ?? string.Empty;
                 }
 
                 foreach ( RepeaterItem repeaterItem in rptFiles.Items )
@@ -66,6 +81,7 @@ namespace RockWeb.Blocks.Cms
 
             set
             {
+                _selectedValue = value;
             }
         }
 
@@ -215,7 +231,7 @@ upnlFiles.ClientID // {2}
 
             if ( !this.IsPostBack || !hasAssetStorageId )
             {
-                lbAssetStorageId.Text = "-1";
+                lbAssetStorageId.Text = NullSelectedId;
                 return;
             }
 

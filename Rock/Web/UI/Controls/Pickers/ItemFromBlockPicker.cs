@@ -278,12 +278,13 @@ namespace Rock.Web.UI.Controls
 
         #region Fields
 
-        private Panel _pickerPanel;
+        private DynamicControlsPanel _pickerPanel;
         private Panel _pnlRolloverContainer;
         private LinkButton _lbShowPicker;
         private LinkButton _btnSelectNone;
         private ModalDialog _pickerDialog;
         private UserControl _pickerBlock;
+        private HiddenField _hfPickerBlockSelectedValue;
 
         #endregion
 
@@ -514,12 +515,24 @@ namespace Rock.Web.UI.Controls
             _pickerDialog.Visible = this.ShowInModal;
             _pickerDialog.SaveButtonText = "Select";
 
-            _pickerPanel = new Panel();
+            _hfPickerBlockSelectedValue = new HiddenField
+            {
+                ID = "_hfPickerBlockSelectedValue"
+            };
+
+            Controls.Add( _hfPickerBlockSelectedValue );
+
+            _pickerPanel = new DynamicControlsPanel()
+            {
+                ID = "_pickerPanel"
+            };
 
             if ( BlockTypePath.IsNotNullOrWhiteSpace() )
             {
                 var rockPage = System.Web.HttpContext.Current.Handler as RockPage;
                 _pickerBlock = rockPage.TemplateControl.LoadControl( BlockTypePath ) as UserControl;
+                _pickerBlock.ID = "_pickerBlock";
+                ( _pickerBlock as IPickerBlock ).SelectedValue = this.SelectedValue;
                 
                 var pageCache = PageCache.Get( rockPage.PageId );
                 ( _pickerBlock as RockBlock )?.SetBlock( pageCache, null, false, false );
@@ -549,6 +562,33 @@ namespace Rock.Web.UI.Controls
                 }
 
             }
+        }
+
+        /// <summary>
+        /// Restores view-state information from a previous request that was saved with the <see cref="M:System.Web.UI.WebControls.WebControl.SaveViewState" /> method.
+        /// </summary>
+        /// <param name="savedState">An object that represents the control state to restore.</param>
+        protected override void LoadViewState( object savedState )
+        {
+            base.LoadViewState( savedState );
+            var pickerSelectedValue = ViewState["PickerControlSelectedValue"] as string;
+            var pickerBlock = ( _pickerBlock as IPickerBlock );
+            if ( pickerBlock != null )
+            { 
+                pickerBlock.SelectedValue = pickerSelectedValue;
+            }
+        }
+
+        /// <summary>
+        /// Saves any state that was modified after the <see cref="M:System.Web.UI.WebControls.Style.TrackViewState" /> method was invoked.
+        /// </summary>
+        /// <returns>
+        /// An object that contains the current view state of the control; otherwise, if there is no view state associated with the control, null.
+        /// </returns>
+        protected override object SaveViewState()
+        {
+            ViewState["PickerControlSelectedValue"] = ( _pickerBlock as IPickerBlock )?.SelectedValue;
+            return base.SaveViewState();
         }
 
         /// <summary>
@@ -647,6 +687,8 @@ namespace Rock.Web.UI.Controls
             get
             {
                 EnsureChildControls();
+
+                return _hfPickerBlockSelectedValue.Value;
                 var pickerBlock = _pickerBlock as IPickerBlock;
                 if ( this.ShowInModal == true )
                 {
@@ -662,6 +704,7 @@ namespace Rock.Web.UI.Controls
             set
             {
                 EnsureChildControls();
+                _hfPickerBlockSelectedValue.Value = value;
                 var pickerBlock = _pickerBlock as IPickerBlock;
                 if ( pickerBlock != null )
                 {
