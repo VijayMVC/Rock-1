@@ -434,7 +434,8 @@ namespace Rock.Web.UI.Controls
         /// <value>
         /// The modal title.
         /// </value>
-        public string ModalTitle {
+        public string ModalTitle
+        {
             get
             {
                 EnsureChildControls();
@@ -532,8 +533,7 @@ namespace Rock.Web.UI.Controls
                 var rockPage = System.Web.HttpContext.Current.Handler as RockPage;
                 _pickerBlock = rockPage.TemplateControl.LoadControl( BlockTypePath ) as UserControl;
                 _pickerBlock.ID = "_pickerBlock";
-                ( _pickerBlock as IPickerBlock ).SelectedValue = this.SelectedValue;
-                
+
                 var pageCache = PageCache.Get( rockPage.PageId );
                 ( _pickerBlock as RockBlock )?.SetBlock( pageCache, null, false, false );
 
@@ -565,33 +565,6 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
-        /// Restores view-state information from a previous request that was saved with the <see cref="M:System.Web.UI.WebControls.WebControl.SaveViewState" /> method.
-        /// </summary>
-        /// <param name="savedState">An object that represents the control state to restore.</param>
-        protected override void LoadViewState( object savedState )
-        {
-            base.LoadViewState( savedState );
-            var pickerSelectedValue = ViewState["PickerControlSelectedValue"] as string;
-            var pickerBlock = ( _pickerBlock as IPickerBlock );
-            if ( pickerBlock != null )
-            { 
-                pickerBlock.SelectedValue = pickerSelectedValue;
-            }
-        }
-
-        /// <summary>
-        /// Saves any state that was modified after the <see cref="M:System.Web.UI.WebControls.Style.TrackViewState" /> method was invoked.
-        /// </summary>
-        /// <returns>
-        /// An object that contains the current view state of the control; otherwise, if there is no view state associated with the control, null.
-        /// </returns>
-        protected override object SaveViewState()
-        {
-            ViewState["PickerControlSelectedValue"] = ( _pickerBlock as IPickerBlock )?.SelectedValue;
-            return base.SaveViewState();
-        }
-
-        /// <summary>
         /// Handles the SaveClick event of the _pickerDialog control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
@@ -600,8 +573,8 @@ namespace Rock.Web.UI.Controls
         {
             _pickerDialog.Hide();
 
-            // if the picker was in a modal dialog, track the SelectValue and SelectedText in viewstate when saved 
-            ViewState["SelectedValue"] = ( _pickerBlock as IPickerBlock )?.SelectedValue;
+            // if the picker was in a modal dialog, track the SelectValue and SelectedText in a hidden when saved 
+            _hfPickerBlockSelectedValue.Value = ( _pickerBlock as IPickerBlock )?.SelectedValue;
 
             SelectItem?.Invoke( this, e );
         }
@@ -688,15 +661,14 @@ namespace Rock.Web.UI.Controls
             {
                 EnsureChildControls();
 
-                return _hfPickerBlockSelectedValue.Value;
-                var pickerBlock = _pickerBlock as IPickerBlock;
                 if ( this.ShowInModal == true )
                 {
-                    // if shown in a modal, track the SelectedValue in viewstate since the pickerBlock could be cancelled
-                    return ViewState["SelectedValue"] as string;
+                    // if shown in a modal, track the SelectedValue in _hfPickerBlockSelectedValue since the pickerBlock could be cancelled
+                    return _hfPickerBlockSelectedValue.Value;
                 }
                 else
                 {
+                    var pickerBlock = _pickerBlock as IPickerBlock;
                     return pickerBlock?.SelectedValue;
                 }
             }
@@ -704,14 +676,14 @@ namespace Rock.Web.UI.Controls
             set
             {
                 EnsureChildControls();
-                _hfPickerBlockSelectedValue.Value = value;
+
                 var pickerBlock = _pickerBlock as IPickerBlock;
                 if ( pickerBlock != null )
                 {
                     pickerBlock.SelectedValue = value;
                 }
 
-                ViewState["SelectedValue"] = value;
+                _hfPickerBlockSelectedValue.Value = value;
             }
         }
 

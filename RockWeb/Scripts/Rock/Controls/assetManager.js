@@ -68,15 +68,12 @@
                 }
 
                 // Some buttons need an asset selected in order to work
-                var temp1 = $assetStorageId.text();
-                if ($assetStorageId.text() == "-1") {
+                if ($assetStorageId.val() == "-1") {
                     $('.js-assetselect').addClass('aspNetDisabled');
                 }
 
-                var temp2 = $selectFolder.text();
-
                 // Can only add if either an asset or folder is selected
-                if ($selectFolder.text() == "" && $assetStorageId.text() == "-1") {
+                if ($selectFolder.val() == "" && $assetStorageId.val() == "-1") {
                     $('.js-createfolder').addClass('aspNetDisabled');
                 }
                 else {
@@ -84,7 +81,7 @@
                 }
 
                 // Can delete folder only if a folder is selected
-                if ($selectFolder.text() == "") {
+                if ($selectFolder.val() == "") {
                     $('.js-deletefolder').addClass('aspNetDisabled');
                 }
                 else {
@@ -94,8 +91,8 @@
                 var folderTreeData = $folderTreeView.data('rockTree');
 
                 if (!folderTreeData) {
-                    var selectedFolders = [encodeURIComponent($assetStorageId.text() + ',' + $selectFolder.text())];
-                    var expandedFolders = $expandedFolders.text().split('||');
+                    var selectedFolders = [encodeURIComponent($assetStorageId.val() + ',' + $selectFolder.val())];
+                    var expandedFolders = $expandedFolders.val().split('||');
                     expandedFolders.forEach(function (part, i, array) {
                         array[i] = encodeURIComponent(array[i]);
                     });
@@ -143,7 +140,7 @@
                             }
                         }).get().join('||');
 
-                        $expandedFolders.text(expandedDataIds);
+                        $expandedFolders.val(expandedDataIds);
                     });
 
                     function resizeScrollAreaHeight() {
@@ -160,14 +157,14 @@
                     var storageId = assetFolderIdParts[0] || "";
                     var folder = assetFolderIdParts[1] || "";
                     var postbackArg;
-                    var expandedFolders = encodeURIComponent($expandedFolders.text());
+                    var expandedFolders = encodeURIComponent($expandedFolders.val());
 
                     // Some buttons are only active if at least one folder is selected once the tree has been selected then a folder is always selected.
                     //$('.js-folderselect').removeClass('aspNetDisabled');
 
-                    if ($selectFolder.text() != folder || $assetStorageId.text() != storageId) {
-                        $selectFolder.text(folder);
-                        $assetStorageId.text(storageId);
+                    if ($selectFolder.val() != folder || $assetStorageId.val() != storageId) {
+                        $selectFolder.val(folder);
+                        $assetStorageId.val(storageId);
                         postbackArg = 'storage-id:' + storageId + '?folder-selected:' + folder.replace(/\\/g, "/") + '?expanded-folders:' + expandedFolders;
 
                         var jsPostback = "javascript:__doPostBack('" + options.filesUpdatePanelId + "','" + postbackArg + "');";
