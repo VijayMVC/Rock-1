@@ -123,13 +123,14 @@
                         <RowDefinition Name="rowDetail" />
                     </Grid.RowDefinitions>
                     <StackPanel
-                        Name="spAccount"
+                        Name="spAccounts"
                         Grid.Row="0"
                         Grid.Column="0"
                         Margin="10"
                         HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch">
-                        <StackPanel Name="spFinancialTransactionSummary">
+                        VerticalAlignment="Stretch"
+                        Visibility="Visible">
+                        <StackPanel Name="spFinancialTransactionDetails">
                             <Label
                                 Name="lblAccountsCaption"
                                 HorizontalAlignment="Stretch"
@@ -208,6 +209,7 @@
                         Name="spCheckImage"
                         Grid.Row="0"
                         Grid.Column="1"
+                        Grid.ColumnSpan="1"
                         Margin="20">
                         <Grid>
                             <Grid.RowDefinitions>

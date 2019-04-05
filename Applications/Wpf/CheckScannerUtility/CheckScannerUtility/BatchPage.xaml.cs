@@ -250,6 +250,12 @@ namespace Rock.Apps.CheckScannerUtility
         /// </summary>
         public ScanningPage ScanningPage { get; set; }
 
+        /// <summary>
+        /// Gets or sets the capture amount scanning page.
+        /// </summary>
+        /// <value>
+        /// The capture amount scanning page.
+        /// </value>
         public CaptureAmountScanningPage CaptureAmountScanningPage { get; set; }
 
         /// <summary>
@@ -474,15 +480,6 @@ namespace Rock.Apps.CheckScannerUtility
             }
             CheckBatchCompleted();
 
-        }
-
-        private void SetAmountColVisibilty()
-        {
-            DataGridTemplateColumn amountCol = this.grdBatchItems.Columns.Where( c => c.Header.ToString() == "Amount" ) as DataGridTemplateColumn;
-            if ( amountCol != null )
-            {
-                amountCol.Visibility = Visibility.Hidden;
-            }
         }
 
         private void CheckBatchCompleted()
@@ -1231,6 +1228,9 @@ namespace Rock.Apps.CheckScannerUtility
             txtControlItemCount.Text = selectedBatch.ControlItemCount.ToString();
             ScanningPageUtility.ItemsToProcess = selectedBatch.ControlItemCount;
 
+            rockConfig = RockConfig.Load();
+
+            colBatchItemAmount.Visibility = rockConfig.CaptureAmountOnScan == true ? Visibility.Visible : Visibility.Collapsed; 
 
             txtNote.Text = selectedBatch.Note;
 
@@ -1245,7 +1245,7 @@ namespace Rock.Apps.CheckScannerUtility
             {
                 ee.Result = null;
 
-                transactions = client.GetData<List<FinancialTransaction>>( "api/FinancialTransactions/", string.Format( "BatchId eq {0} &$expand=TransactionDetails", selectedBatch.Id ) );
+                transactions = client.GetData<List<FinancialTransaction>>( "api/FinancialTransactions/", string.Format( "BatchId eq {0} &$expand=TransactionDetails,FinancialPaymentDetail", selectedBatch.Id ) );
             };
             bw.DoWork += ( o, s ) =>
             {
@@ -1253,19 +1253,17 @@ namespace Rock.Apps.CheckScannerUtility
                 ScanningPageUtility.Accounts = allAccounts;
             };
 
+            var currencyValueLookup = CurrencyValueList.ToDictionary( k => k.Id, v => v );
+
 
             bw.RunWorkerCompleted += delegate ( object s, RunWorkerCompletedEventArgs ee )
             {
                 this.Cursor = null;
                 foreach ( var transaction in transactions )
                 {
-                    if ( transaction.FinancialPaymentDetailId.HasValue )
+                    if ( transaction.FinancialPaymentDetail?.CurrencyTypeValueId != null )
                     {
-                        transaction.FinancialPaymentDetail = transaction.FinancialPaymentDetail ?? client.GetData<FinancialPaymentDetail>( string.Format( "api/FinancialPaymentDetails/{0}", transaction.FinancialPaymentDetailId ?? 0 ) );
-                        if ( transaction.FinancialPaymentDetail != null )
-                        {
-                            transaction.FinancialPaymentDetail.CurrencyTypeValue = this.CurrencyValueList.FirstOrDefault( a => a.Id == transaction.FinancialPaymentDetail.CurrencyTypeValueId );
-                        }
+                        transaction.FinancialPaymentDetail.CurrencyTypeValue = currencyValueLookup.GetValueOrNull(transaction.FinancialPaymentDetail.CurrencyTypeValueId.Value );
                     }
                 }
 
@@ -1492,7 +1490,12 @@ namespace Rock.Apps.CheckScannerUtility
 
         #endregion
 
-        private void TextBlock_Loaded( object sender, RoutedEventArgs e )
+        /// <summary>
+        /// Handles the Loaded event of the colBatchItemAmount control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void colBatchItemAmount_Loaded( object sender, RoutedEventArgs e )
         {
             decimal sum = 0;
             var textblock = sender as TextBlock;

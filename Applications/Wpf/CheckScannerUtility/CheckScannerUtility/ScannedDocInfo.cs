@@ -223,6 +223,14 @@ namespace Rock.Apps.CheckScannerUtility
         public bool BadMicr { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether no image data was included in the scan
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [image failure]; otherwise, <c>false</c>.
+        /// </value>
+        public bool ImageFailure { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this <see cref="ScannedDocInfo"/> is duplicate.
         /// </summary>
         /// <value>

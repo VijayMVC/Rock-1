@@ -77,47 +77,41 @@ namespace Rock.Apps.CheckScannerUtility
             var rockConfig = RockConfig.Load();
 
             bool scanningChecks = rockConfig.TenderTypeValueGuid.AsGuid() == Rock.Client.SystemGuid.DefinedValue.CURRENCY_TYPE_CHECK.AsGuid();
+            
 
-            // if they don't enable smart scan, don't warn about bad micr's. For example, they might be scanning a mixture of checks and envelopes
-            if ( rockConfig.EnableSmartScan )
+            // f they don't enable smart scan, don't warn about bad MICRs, they might be scanning a mixture of checks and envelopes.
+            // However, if there was a failure getting an image, show a warning
+            if ( ( scannedDocInfo.BadMicr && rockConfig.EnableSmartScan ) || scannedDocInfo.ImageFailure )
             {
-                if ( scannedDocInfo.BadMicr )
+                var scannedItemName = scanningChecks ? "check" : "item";
+                StringBuilder alertMessageBuilder = new StringBuilder();
+                if ( scannedDocInfo.BadMicr && scannedDocInfo.ImageFailure )
                 {
-                    string message;
-                    if ( rockConfig.ScannerInterfaceType == RockConfig.InterfaceType.RangerApi )
-                    {
-                        message = @"Unable to read check information."
-                                + Environment.NewLine
-                                + "Click 'Skip' to reject this check and continue scanning."
-                                + Environment.NewLine
-                                + "To retry this check, put the check back into the feed tray."
-                                + Environment.NewLine
-                                + "Click 'Upload' to upload the check as-is."
-                                + Environment.NewLine
-                                + "Click 'Stop' to reject this check and stop scanning.";
-                    }
-                    else
-                    {
-                        message = @"Unable to read check information."
-                                  + Environment.NewLine
-                                  + "Click 'Skip' to reject this check."
-                                  + Environment.NewLine
-                                  + "Click 'Upload' to upload the check as-is.";
-
-                    }
-
-                    this.DisplayAlertMessage( AlertMessageType.Warning, message );
-                    ShowUploadWarnings( scannedDocInfo );
-                    return;
+                    alertMessageBuilder.AppendLine( $"Unable to read {scannedItemName} information or {scannedItemName} image." );
                 }
+                else if ( scannedDocInfo.BadMicr )
+                {
+                    alertMessageBuilder.AppendLine( $"Unable to read {scannedItemName} information." );
+                }
+                else if ( scannedDocInfo.ImageFailure )
+                {
+                    alertMessageBuilder.AppendLine( $"Unable to read {scannedItemName} image." );
+                }
+
+                alertMessageBuilder.AppendLine( $"Click 'Skip' to reject this {scannedItemName} and continue scanning." );
+                alertMessageBuilder.AppendLine( $"To retry this check, put the {scannedItemName} back into the feed tray." );
+                alertMessageBuilder.AppendLine( "" );
+                alertMessageBuilder.AppendLine( $"Click 'Upload' to upload the {scannedItemName} as-is." );
+
+                this.DisplayAlertMessage( AlertMessageType.Warning, alertMessageBuilder.ToString() );
+                ShowUploadWarnings( scannedDocInfo );
+                return;
             }
             else
             {
-                // if Enable Smart Scan is disabled, upload even if there is a bad or missing MICR
-                if ( !scannedDocInfo.Upload )
-                {
-                    scannedDocInfo.Upload = true;
-                }
+
+                scannedDocInfo.Upload = true;
+
             }
 
             if ( scannedDocInfo.Upload && ScanningPageUtility.IsDuplicateScan( scannedDocInfo ) )
@@ -194,6 +188,10 @@ namespace Rock.Apps.CheckScannerUtility
             {
                 ScanningPageUtility.ResumeScanning();
             }
+            else
+            {
+                btnStart.IsEnabled = true;
+            }
         }
 
         /// <summary>
@@ -204,7 +202,7 @@ namespace Rock.Apps.CheckScannerUtility
             ScanningPageUtility.ConfirmUploadBadScannedDoc = scannedDocInfo;
             lblScanItemUploadSuccess.Visibility = Visibility.Collapsed;
             lblScanItemUploadSkipped.Visibility = Visibility.Collapsed;
-            pnlPromptForUpload.Visibility = scannedDocInfo.Duplicate || scannedDocInfo.BadMicr ? Visibility.Visible : Visibility.Collapsed;
+            pnlPromptForUpload.Visibility = (scannedDocInfo.Duplicate || scannedDocInfo.BadMicr || scannedDocInfo.ImageFailure)  ? Visibility.Visible : Visibility.Collapsed;
 
             btnStart.IsEnabled = false;
             btnStopScanning.IsEnabled = true;
@@ -223,7 +221,7 @@ namespace Rock.Apps.CheckScannerUtility
             pnlPromptForUpload.Visibility = Visibility.Collapsed;
         }
 
-        
+
 
         /// <summary>
         /// Shows the upload success.
@@ -263,18 +261,18 @@ namespace Rock.Apps.CheckScannerUtility
         {
             if ( scannedDocInfo.FrontImageData != null )
             {
-                this.spCheckDisplay.Visibility = Visibility.Visible;
+                this.spScannedItemDisplay.Visibility = Visibility.Visible;
                 BitmapImage bitmapImageFront = new BitmapImage();
                 bitmapImageFront.BeginInit();
                 bitmapImageFront.StreamSource = new MemoryStream( scannedDocInfo.FrontImageData );
                 bitmapImageFront.EndInit();
-                imgCheckFront.Source = bitmapImageFront;
+                imgScannedItemFront.Source = bitmapImageFront;
                 imgFrontThumb.Source = bitmapImageFront;
-                Rock.Wpf.WpfHelper.FadeIn( imgCheckFront, 100 );
+                Rock.Wpf.WpfHelper.FadeIn( imgScannedItemFront, 100 );
             }
             else
             {
-                imgCheckFront.Source = null;
+                imgScannedItemFront.Source = null;
             }
 
             if ( scannedDocInfo.BackImageData != null )
@@ -284,7 +282,7 @@ namespace Rock.Apps.CheckScannerUtility
                 bitmapImageBack.BeginInit();
                 bitmapImageBack.StreamSource = new MemoryStream( scannedDocInfo.BackImageData );
                 bitmapImageBack.EndInit();
-                imgCheckBack.Source = bitmapImageBack;
+                imgScannedItemBack.Source = bitmapImageBack;
                 imgBackThumb.Source = bitmapImageBack;
             }
             else
@@ -292,9 +290,10 @@ namespace Rock.Apps.CheckScannerUtility
                 grdImageThumbnailsButtons.Visibility = Visibility.Collapsed;
             }
 
+            spScannedItemDisplay.Visibility = Visibility.Visible;
+
             if ( scannedDocInfo.IsCheck )
             {
-                CheckImages.Visibility = Visibility.Visible;
                 gCheckMICRInfo.Visibility = Visibility.Visible;
                 lblMicrRoutingAccountValue.Content = string.Format( "{0} / {1}", scannedDocInfo.RoutingNumber, scannedDocInfo.AccountNumber );
                 lblMicrCheckNumber.Content = scannedDocInfo.CheckNumber;
@@ -319,7 +318,7 @@ namespace Rock.Apps.CheckScannerUtility
             var rockConfig = RockConfig.Load();
             this._interfaceType = rockConfig.ScannerInterfaceType;
             this.gCheckMICRInfo.Visibility = Visibility.Collapsed;
-            this.spCheckDisplay.Visibility = Visibility.Collapsed;
+            this.spScannedItemDisplay.Visibility = Visibility.Collapsed;
 
             // set the uploadScannedItemClient to null and reconnect to ensure we have a fresh connection (just in case they changed the url, or if the connection died for some other reason)
             ScanningPageUtility.UploadScannedItemClient = null;
@@ -419,7 +418,7 @@ namespace Rock.Apps.CheckScannerUtility
             if ( ScanningPageUtility.ItemsScanned == 0 )
             {
                 // show the Startup Info "Welcome" message if no check images are shown yet
-                if ( spCheckDisplay.Visibility != Visibility.Visible )
+                if ( spScannedItemDisplay.Visibility != Visibility.Visible )
                 {
                     lblStartInfo.Visibility = Visibility.Visible;
                 }
@@ -841,6 +840,9 @@ namespace Rock.Apps.CheckScannerUtility
                 {
                     scannedDoc.BadMicr = true;
                 }
+
+                scannedDoc.ImageFailure = e.ImageData == null;
+
                 if ( _currentMagtekScannedDoc != null && _currentMagtekScannedDoc.FrontImageData != null )
                 {
                     _currentMagtekScannedDoc.BackImageData = e.ImageData;
@@ -1046,12 +1048,12 @@ namespace Rock.Apps.CheckScannerUtility
             switch ( parameter )
             {
                 case "Front":
-                    this.imgCheckBack.Visibility = Visibility.Collapsed;
-                    this.imgCheckFront.Visibility = Visibility.Visible;
+                    this.imgScannedItemBack.Visibility = Visibility.Collapsed;
+                    this.imgScannedItemFront.Visibility = Visibility.Visible;
                     break;
                 case "Back":
-                    this.imgCheckBack.Visibility = Visibility.Visible;
-                    this.imgCheckFront.Visibility = Visibility.Collapsed;
+                    this.imgScannedItemBack.Visibility = Visibility.Visible;
+                    this.imgScannedItemFront.Visibility = Visibility.Collapsed;
                     break;
             }
         }

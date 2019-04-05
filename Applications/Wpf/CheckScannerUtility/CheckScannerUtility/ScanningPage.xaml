@@ -198,16 +198,15 @@
                 </StackPanel>
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Name="rowCheckImages" Height="Auto" />
+                        <RowDefinition Name="rowScannedItemImages" Height="Auto" />
                     </Grid.RowDefinitions>
-                    <!--  Check Display  -->
+                    <!--  Scanned Item Display  -->
                     <StackPanel
-                        Name="spCheckDisplay"
+                        Name="spScannedItemDisplay"
                         Grid.Row="0"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch">
                         <Grid
-                            Name="CheckImages"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch">
                             <Grid>
@@ -225,19 +224,19 @@
                                     <ColumnDefinition Width="17*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid
-                                    Name="CheckScanImages"
+                                    Name="gScannedItemImages"
                                     Grid.Row="0"
                                     Grid.RowSpan="3"
                                     Grid.Column="2">
                                     <Image
-                                        Name="imgCheckFront"
+                                        Name="imgScannedItemFront"
                                         MaxWidth="700"
                                         HorizontalAlignment="Center"
                                         Source="images/check-image.png"
                                         Stretch="Uniform"
                                         Visibility="Visible" />
                                     <Image
-                                        Name="imgCheckBack"
+                                        Name="imgScannedItemBack"
                                         MaxWidth="700"
                                         HorizontalAlignment="Center"
                                         Source="images/check-image-back.png"

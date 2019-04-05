@@ -548,10 +548,18 @@ namespace Rock.Apps.CheckScannerUtility
                 scannedDoc.SourceTypeValue = ScanningPageUtility.batchPage.SelectedSourceTypeValue;
 
                 scannedDoc.FrontImageData = ScanningPageUtility.GetImageBytesFromRanger( RangerSides.TransportFront );
+                if ( scannedDoc.FrontImageData == null )
+                {
+                    scannedDoc.ImageFailure = true;
+                }
 
                 if ( rockConfig.EnableRearImage )
                 {
                     scannedDoc.BackImageData = ScanningPageUtility.GetImageBytesFromRanger( RangerSides.TransportRear );
+                    if ( scannedDoc.BackImageData == null )
+                    {
+                        scannedDoc.ImageFailure = true;
+                    }
                 }
 
                 if ( scannedDoc.IsCheck )
@@ -749,10 +757,18 @@ namespace Rock.Apps.CheckScannerUtility
                 if ( scanningMagTekBackImage )
                 {
                     scannedDoc.BackImageData = File.ReadAllBytes( docImageFileName );
+                    if ( scannedDoc.BackImageData == null )
+                    {
+                        scannedDoc.ImageFailure = true;
+                    }
                 }
                 else
                 {
                     scannedDoc.FrontImageData = File.ReadAllBytes( docImageFileName );
+                    if ( scannedDoc.FrontImageData == null )
+                    {
+                        scannedDoc.ImageFailure = true;
+                    }
 
                     // MagTek puts the symbol '?' for parts of the MICR that it can't read
                     bool gotValidMicr = !string.IsNullOrWhiteSpace( scannedDoc.AccountNumber ) && !scannedDoc.AccountNumber.Contains( '?' )
@@ -897,6 +913,11 @@ namespace Rock.Apps.CheckScannerUtility
                 if ( _currentMagtekScannedDoc != null && _currentMagtekScannedDoc.FrontImageData != null )
                 {
                     _currentMagtekScannedDoc.BackImageData = e.ImageData;
+
+                    if ( e.ImageData == null )
+                    {
+                        _currentMagtekScannedDoc.ImageFailure = true;
+                    }
                 }
                 else
                 {

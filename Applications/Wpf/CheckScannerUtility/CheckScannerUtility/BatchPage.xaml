@@ -605,7 +605,7 @@
                                         <TextBlock
                                             HorizontalAlignment="Left"
                                             VerticalAlignment="Center"
-                                            Loaded="TextBlock_Loaded"
+                                            Loaded="colBatchItemAmount_Loaded"
                                             Text="{Binding}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

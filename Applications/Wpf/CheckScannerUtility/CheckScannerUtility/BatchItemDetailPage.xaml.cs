@@ -77,7 +77,19 @@ namespace Rock.Apps.CheckScannerUtility
             client.Login( config.Username, config.Password );
 
 
-            spFinancialTransactionSummary.Visibility = config.CaptureAmountOnScan == true ? Visibility.Visible : Visibility.Collapsed;
+            if (config.CaptureAmountOnScan )
+            {
+                spAccounts.Visibility = Visibility.Visible;
+                Grid.SetColumn( spCheckImage, 1 );
+                Grid.SetColumnSpan( spCheckImage, 1 );
+            }
+            else
+            {
+                spAccounts.Visibility = Visibility.Collapsed;
+                Grid.SetColumn( spCheckImage, 0 );
+                Grid.SetColumnSpan( spCheckImage, 2 );
+            }
+
             spActionsSaveCancel.Visibility = config.CaptureAmountOnScan == true ? Visibility.Visible : Visibility.Collapsed;
             spActionsReadonly.Visibility = config.CaptureAmountOnScan == false ? Visibility.Visible : Visibility.Collapsed;
 

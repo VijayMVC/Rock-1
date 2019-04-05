@@ -116,6 +116,9 @@
     <Compile Include="..\..\..\..\Rock\Utility\ExtensionMethods\BooleanExtensions.cs">
       <Link>RockExtensions\BooleanExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\..\..\..\Rock\Utility\ExtensionMethods\DictionaryExtensions.cs">
+      <Link>RockExtensions\DictionaryExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\..\..\..\Rock\Utility\ExtensionMethods\EnumExtensions.cs">
       <Link>RockExtensions\EnumExtensions.cs</Link>
     </Compile>
