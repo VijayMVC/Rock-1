@@ -451,6 +451,7 @@
                                     Content="Control Amount"
                                     Style="{StaticResource labelStyle}" />
                                 <rockWpfControls:CurrencyBox
+                                    VerticalAlignment="Top"
                                     x:Name="cbControlAmount"
                                     Grid.Row="5"
                                     Grid.Column="0"

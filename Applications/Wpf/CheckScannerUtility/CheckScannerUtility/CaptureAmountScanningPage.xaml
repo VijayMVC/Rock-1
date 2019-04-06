@@ -136,13 +136,13 @@
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel Name="spException" Visibility="Collapsed">
-                                <Label
+                                <rockWpfControls:AlertLabel
                                     Name="lblExceptions"
+                                    AlertType="Danger"
                                     Grid.Row="0"
                                     Grid.Column="0"
                                     Panel.ZIndex="1"
                                     Content="ERROR: --"
-                                    Style="{StaticResource labelStyleAlertDanger}"
                                     Visibility="Visible" />
                             </StackPanel>
                             <Grid Visibility="Visible">

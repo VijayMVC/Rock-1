@@ -27,6 +27,7 @@
         <Setter Property="Label.FontWeight" Value="Normal" />
         <Setter Property="Label.FontSize" Value="14" />
         <Setter Property="Label.Foreground" Value="#2b2b2b" />
+        <Setter Property="FontFamily" Value="./resources/#Roboto-Regular" />
     </Style>
 
     <Style x:Key="labelStyleSmall" TargetType="{x:Type Label}">

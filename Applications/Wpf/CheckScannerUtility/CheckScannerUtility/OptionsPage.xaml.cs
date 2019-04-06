@@ -176,7 +176,7 @@ namespace Rock.Apps.CheckScannerUtility
             txtRockUrl.Text = rockConfig.RockBaseUrl;
             if ( rockConfig.CaptureAmountOnScan == true )
             {
-                chkRequireConrolAmount.IsChecked = rockConfig.RequireControlAmount;
+                chkRequireControlAmount.IsChecked = rockConfig.RequireControlAmount;
                 chkRequireControlItemCount.IsChecked = rockConfig.RequireControlItemCount;
                 chkCaptureAmountOnScan.IsChecked = rockConfig.CaptureAmountOnScan;
             }
@@ -337,7 +337,7 @@ namespace Rock.Apps.CheckScannerUtility
 
             _rockConfig.CaptureAmountOnScan = chkCaptureAmountOnScan.IsChecked == true;
       
-            _rockConfig.RequireControlAmount = chkRequireConrolAmount.IsChecked == true;
+            _rockConfig.RequireControlAmount = chkRequireControlAmount.IsChecked == true;
             _rockConfig.RequireControlItemCount = chkRequireControlItemCount.IsChecked == true;
             AddAccountsForAmountsToSave();
             if ( _rockConfig.CaptureAmountOnScan && _rockConfig.SelectedAccountForAmountsIds.Count() == 0 )
@@ -515,8 +515,7 @@ namespace Rock.Apps.CheckScannerUtility
         private void cboScannerInterfaceType_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             // show Image Option only for Ranger so default Collapsed for both MagTeks
-            lblImageOption.Visibility = Visibility.Hidden;
-            cboImageOption.Visibility = Visibility.Hidden;
+            spImageOption.Visibility = Visibility.Collapsed;
 
             // show Image Option only for Ranger so default Collapsed
             lblAdvancedInfo.Visibility = Visibility.Hidden;
@@ -546,7 +545,7 @@ namespace Rock.Apps.CheckScannerUtility
                         break;
                     default:
                         // show Image Option only for Ranger
-                        lblImageOption.Visibility = Visibility.Visible;
+                        spImageOption.Visibility = Visibility.Visible;
                         cboImageOption.Visibility = Visibility.Visible;
                         lblMagTekCommPort.Visibility = Visibility.Collapsed;
                         cboMagTekCommPort.Visibility = Visibility.Collapsed;
@@ -578,7 +577,7 @@ namespace Rock.Apps.CheckScannerUtility
 
         private void ChkCaptureAmountOnScan_Unchecked( object sender, RoutedEventArgs e )
         {
-            chkRequireConrolAmount.IsChecked = false;
+            chkRequireControlAmount.IsChecked = false;
             chkRequireControlItemCount.IsChecked = false;
         }
 

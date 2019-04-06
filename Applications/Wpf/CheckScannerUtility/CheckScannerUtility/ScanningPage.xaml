@@ -206,9 +206,7 @@
                         Grid.Row="0"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch">
-                        <Grid
-                            HorizontalAlignment="Stretch"
-                            VerticalAlignment="Stretch">
+                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
@@ -258,40 +256,45 @@
                                         Orientation="Horizontal">
                                         <Label
                                             x:Name="lblMicrRoutingAccountCaption"
-                                            Content="Routing / Account #"
-                                            Style="{StaticResource labelStyleCaption}" />
-                                        <Label x:Name="lblMicrRoutingAccountValue" Content="063453535 / 46565656565" />
+                                            Content="Routing / Account #:"
+                                            Style="{StaticResource labelStyleBold}" />
+                                        <Label
+                                            x:Name="lblMicrRoutingAccountValue"
+                                            Margin="0,0,50,0"
+                                            Content="063453535 / 46565656565"
+                                            Style="{StaticResource labelStyle}" />
                                     </StackPanel>
                                     <StackPanel
                                         Name="spMicrOtherData"
                                         Grid.Column="0"
-                                        Margin="0,15,0,0"
+                                        Margin="0,25,0,0"
                                         HorizontalAlignment="Stretch"
                                         Orientation="Horizontal"
-                                        Visibility="Collapsed">
+                                        Visibility="Visible">
                                         <Label
                                             x:Name="lblMicrOtherDataCaption"
-                                            VerticalAlignment="Center"
-                                            Content="OtherData"
-                                            Style="{StaticResource labelStyleCaption}" />
-                                        <Label x:Name="lblMicrOtherData" VerticalAlignment="Center" />
+                                            Content="Other Data:"
+                                            Style="{StaticResource labelStyleBold}" />
+                                        <Label
+                                            x:Name="lblMicrOtherData"
+                                            Content="23$$$#452345!!!"
+                                            Style="{StaticResource labelStyle}" />
                                     </StackPanel>
                                     <StackPanel
                                         Grid.Column="1"
                                         Margin="0,0,20,0"
                                         HorizontalAlignment="Right"
-                                        VerticalAlignment="Center"
+                                        VerticalAlignment="Top"
                                         Orientation="Horizontal">
                                         <Label
                                             x:Name="lblMicrCheckNumberCaption"
                                             HorizontalAlignment="Right"
-                                            VerticalAlignment="Center"
-                                            Content="Check #"
-                                            Style="{StaticResource labelStyleCaption}" />
+                                            Content="Check #:"
+                                            Style="{StaticResource labelStyleBold}" />
                                         <Label
                                             Name="lblMicrCheckNumber"
-                                            VerticalAlignment="Center"
-                                            Content="1234" />
+                                            Content="1234"
+                                            Style="{StaticResource labelStyle}" />
                                     </StackPanel>
                                 </Grid>
                                 <Grid
@@ -302,8 +305,9 @@
                                     HorizontalAlignment="Stretch"
                                     VerticalAlignment="Stretch">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition />
-                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="175*" />
+                                        <ColumnDefinition Width="158*" />
+                                        <ColumnDefinition Width="17*" />
                                     </Grid.ColumnDefinitions>
                                     <Button
                                         Name="btnImageFront"
@@ -325,6 +329,7 @@
                                     <Button
                                         Name="btnImageBack"
                                         Grid.Column="1"
+                                        Grid.ColumnSpan="2"
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Click="BtnImageToggle_FrontBack_Click"

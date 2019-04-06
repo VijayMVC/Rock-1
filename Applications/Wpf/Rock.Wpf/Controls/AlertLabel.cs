@@ -10,12 +10,17 @@ namespace Rock.Wpf.Controls
     public class AlertLabel : Label
     {
         private AlertMessageType alertMessageType;
+        private AccessText accessText = new AccessText() { TextWrapping = TextWrapping.Wrap };
 
-        public AlertLabel()
+        public override void OnApplyTemplate()
         {
-            Style style = new Style( typeof( TextBlock ) );
-            style.Setters.Add( new Setter() { TargetName = "TextWrapping", Value = TextWrapping.Wrap } );
-            Resources.Add( "Style", style );
+            if ( this.Content is string)
+            {
+                accessText.Text = this.Content as string;
+                this.Content = accessText;
+            }
+
+            base.OnApplyTemplate();
         }
 
         /// <summary>
@@ -60,7 +65,7 @@ namespace Rock.Wpf.Controls
         /// </value>
         public string Message
         {
-            get => this.Content as string;
+            get => (this.Content as AccessText)?.Text ?? this.Content as string;
             set => Content = value;
         }
     }

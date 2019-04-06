@@ -99,7 +99,7 @@ namespace Rock.Apps.CheckScannerUtility
                 }
 
                 alertMessageBuilder.AppendLine( $"Click 'Skip' to reject this {scannedItemName} and continue scanning." );
-                alertMessageBuilder.AppendLine( $"To retry this check, put the {scannedItemName} back into the feed tray." );
+                alertMessageBuilder.AppendLine( $"To retry this check, click 'Skip' then put the {scannedItemName} back into the feed tray." );
                 alertMessageBuilder.AppendLine( "" );
                 alertMessageBuilder.AppendLine( $"Click 'Upload' to upload the {scannedItemName} as-is." );
 
@@ -116,14 +116,16 @@ namespace Rock.Apps.CheckScannerUtility
 
             if ( scannedDocInfo.Upload && ScanningPageUtility.IsDuplicateScan( scannedDocInfo ) )
             {
+                var scannedItemName = scanningChecks ? "check" : "item";
+
                 scannedDocInfo.Duplicate = true;
                 scannedDocInfo.Upload = false;
-                var message = @"A check with the same account information and check number has already been scanned."
-                + Environment.NewLine
-                + "Click 'Skip' to reject this check."
-                + Environment.NewLine
-                + "Click 'Upload' to upload the check as-is.";
-                this.DisplayAlertMessage( AlertMessageType.Warning, message );
+                StringBuilder alertMessageBuilder = new StringBuilder();
+                alertMessageBuilder.AppendLine( $"A {scannedItemName} with the same account information and check number has already been scanned." );
+                alertMessageBuilder.AppendLine( $"Click 'Skip' to reject this {scannedItemName}." );
+                alertMessageBuilder.AppendLine( $"Click 'Upload' to upload the {scannedItemName} as-is." );
+                
+                this.DisplayAlertMessage( AlertMessageType.Warning, alertMessageBuilder.ToString() );
 
                 ShowUploadWarnings( scannedDocInfo );
             }
@@ -950,6 +952,27 @@ namespace Rock.Apps.CheckScannerUtility
             lblScanItemCountInfo.Content = string.Join( ", ", statsList );
         }
 
+        /// <summary>
+        /// Handles the Click event of the BtnImageToggle_FrontBack control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
+        private void BtnImageToggle_FrontBack_Click( object sender, RoutedEventArgs e )
+        {
+            var parameter = ( ( Button ) e.OriginalSource ).CommandParameter as string;
+            switch ( parameter )
+            {
+                case "Front":
+                    this.imgScannedItemBack.Visibility = Visibility.Collapsed;
+                    this.imgScannedItemFront.Visibility = Visibility.Visible;
+                    break;
+                case "Back":
+                    this.imgScannedItemBack.Visibility = Visibility.Visible;
+                    this.imgScannedItemFront.Visibility = Visibility.Collapsed;
+                    break;
+            }
+        }
+
         //
         /// <summary>
         /// Handles the Click event of the btnStart control.
@@ -1037,27 +1060,7 @@ namespace Rock.Apps.CheckScannerUtility
             }
         }
 
-        /// <summary>
-        /// Handles the Click event of the BtnImageToggle_FrontBack control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
-        private void BtnImageToggle_FrontBack_Click( object sender, RoutedEventArgs e )
-        {
-            var parameter = ( ( Button ) e.OriginalSource ).CommandParameter as string;
-            switch ( parameter )
-            {
-                case "Front":
-                    this.imgScannedItemBack.Visibility = Visibility.Collapsed;
-                    this.imgScannedItemFront.Visibility = Visibility.Visible;
-                    break;
-                case "Back":
-                    this.imgScannedItemBack.Visibility = Visibility.Visible;
-                    this.imgScannedItemFront.Visibility = Visibility.Collapsed;
-                    break;
-            }
-        }
-
+        
         /// <summary>
         /// Handles the Click event of the btnOptions control.
         /// </summary>
